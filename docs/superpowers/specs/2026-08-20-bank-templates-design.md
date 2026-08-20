@@ -77,8 +77,8 @@ a un correo entrante antes de llamar a `extractFields`.
 ```ts
 type ExtractedFields = {
   amount: number;      // centavos, magnitud sin signo
+  date: string;         // ISO 8601 — obligatorio, igual que amount
   merchant?: string;
-  date?: string;        // ISO 8601
   currency?: string;
 };
 ```
@@ -163,8 +163,17 @@ const prisma = new PrismaClient();
 for (const template of templates) {
   await prisma.bankTemplate.upsert({
     where: { senderPattern: template.sender_pattern },
-    update: { ...template },
-    create: { ...template },
+    update: {
+      bankName: template.bank_name,
+      country: template.country,
+      extractionRules: template.extraction_rules,
+    },
+    create: {
+      bankName: template.bank_name,
+      country: template.country,
+      senderPattern: template.sender_pattern,
+      extractionRules: template.extraction_rules,
+    },
   });
 }
 ```
