@@ -32,14 +32,21 @@ beforeEach(() => {
 });
 
 // renderWithQueryClient is async (wraps RNTL's async render()) — always await it.
-test("shows a delete confirmation modal instead of deleting immediately", async () => {
-  await renderWithQueryClient(<TransactionDetailScreen />);
-  await waitFor(() => expect(screen.getByDisplayValue("Kiosco")).toBeTruthy());
+// Timeout raised from the 5000ms default: this test flaked past it once under
+// cold-cache/full-suite CPU contention (passed consistently in isolation and
+// on warm reruns) — see Task 13 verification notes.
+test(
+  "shows a delete confirmation modal instead of deleting immediately",
+  async () => {
+    await renderWithQueryClient(<TransactionDetailScreen />);
+    await waitFor(() => expect(screen.getByDisplayValue("Kiosco")).toBeTruthy());
 
-  fireEvent.press(screen.getByText("Eliminar"));
+    fireEvent.press(screen.getByText("Eliminar"));
 
-  await waitFor(() => expect(screen.getByText("¿Eliminar esta transacción?")).toBeTruthy());
-});
+    await waitFor(() => expect(screen.getByText("¿Eliminar esta transacción?")).toBeTruthy());
+  },
+  15000,
+);
 
 test("confirming delete calls deleteTransaction with the transaction id", async () => {
   const deleteSpy = jest.spyOn(transactionsApi, "deleteTransaction").mockResolvedValue(undefined);
