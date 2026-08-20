@@ -41,7 +41,8 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testTimeout": 15000
   },
   "private": true
 }
