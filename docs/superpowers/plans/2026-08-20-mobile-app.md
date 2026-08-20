@@ -134,8 +134,11 @@ Add (don't remove existing fields):
 import { Text } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 
-test("renders text", () => {
-  render(<Text>Huella</Text>);
+// @testing-library/react-native's render() is async (wraps the initial
+// render in act() for concurrent-React support) — must be awaited, or
+// screen queries run before the render populates the `screen` singleton.
+test("renders text", async () => {
+  await render(<Text>Huella</Text>);
   expect(screen.getByText("Huella")).toBeTruthy();
 });
 ```
@@ -488,7 +491,7 @@ git commit -m "feat(mobile): Expo Router skeleton (home, entry modal, detail)"
 - Create: `apps/mobile/.env.example`
 
 **Interfaces:**
-- Produces: `API_BASE_URL: string`, `DEV_USER_ID: string` (from `src/config.ts`); `renderWithQueryClient(ui: ReactElement)` and `renderHookWithQueryClient<TResult, TProps>(callback: (props: TProps) => TResult)` (from `src/test-utils/renderWithQueryClient.tsx`) — every subsequent hook/screen test uses these.
+- Produces: `API_BASE_URL: string`, `DEV_USER_ID: string` (from `src/config.ts`); `renderWithQueryClient(ui: ReactElement): Promise<RenderResult>` (async — must be awaited, see note in Step 4) and `renderHookWithQueryClient<TResult, TProps>(callback: (props: TProps) => TResult)` (from `src/test-utils/renderWithQueryClient.tsx`) — every subsequent hook/screen test uses these.
 
 - [ ] **Step 1: Install TanStack Query**
 
@@ -525,7 +528,10 @@ function createTestQueryClient() {
   });
 }
 
-export function renderWithQueryClient(ui: ReactElement) {
+// @testing-library/react-native's render() is async (wraps the initial
+// render in act() for concurrent-React support) — this wrapper stays async
+// too, and every call site must `await renderWithQueryClient(...)`.
+export async function renderWithQueryClient(ui: ReactElement) {
   const queryClient = createTestQueryClient();
   return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 }
@@ -1090,13 +1096,14 @@ git commit -m "feat(mobile): TanStack Query hooks for accounts/categories/transa
 import { render, screen } from "@testing-library/react-native";
 import { Money } from "../Money";
 
-test("renders a negative amount as a negative currency string", () => {
-  render(<Money amountCents={-1500} currency="ARS" />);
+// render() is async in this @testing-library/react-native version — always await it.
+test("renders a negative amount as a negative currency string", async () => {
+  await render(<Money amountCents={-1500} currency="ARS" />);
   expect(screen.getByText(/-/)).toBeTruthy();
 });
 
-test("renders a positive amount without a minus sign", () => {
-  render(<Money amountCents={1500} currency="ARS" />);
+test("renders a positive amount without a minus sign", async () => {
+  await render(<Money amountCents={1500} currency="ARS" />);
   expect(screen.queryByText(/^-/)).toBeNull();
 });
 ```
@@ -1196,19 +1203,20 @@ const transaction: Transaction = {
   updated_at: "2026-08-20T00:00:00.000Z",
 };
 
-test("shows the merchant name", () => {
-  render(<TransactionRow transaction={transaction} onPress={jest.fn()} />);
+// render() is async in this @testing-library/react-native version — always await it.
+test("shows the merchant name", async () => {
+  await render(<TransactionRow transaction={transaction} onPress={jest.fn()} />);
   expect(screen.getByText("Kiosco")).toBeTruthy();
 });
 
-test("falls back to a placeholder when there is no merchant", () => {
-  render(<TransactionRow transaction={{ ...transaction, merchant: null }} onPress={jest.fn()} />);
+test("falls back to a placeholder when there is no merchant", async () => {
+  await render(<TransactionRow transaction={{ ...transaction, merchant: null }} onPress={jest.fn()} />);
   expect(screen.getByText("Sin comercio")).toBeTruthy();
 });
 
-test("calls onPress with the transaction id when tapped", () => {
+test("calls onPress with the transaction id when tapped", async () => {
   const onPress = jest.fn();
-  render(<TransactionRow transaction={transaction} onPress={onPress} />);
+  await render(<TransactionRow transaction={transaction} onPress={onPress} />);
   fireEvent.press(screen.getByText("Kiosco"));
   expect(onPress).toHaveBeenCalledWith("tx1");
 });
@@ -1291,8 +1299,9 @@ export function TransactionListSkeleton() {
 import { render } from "@testing-library/react-native";
 import { TransactionListSkeleton } from "../TransactionListSkeleton";
 
-test("renders 5 placeholder rows", () => {
-  const { toJSON } = render(<TransactionListSkeleton />);
+// render() is async in this @testing-library/react-native version — always await it.
+test("renders 5 placeholder rows", async () => {
+  const { toJSON } = await render(<TransactionListSkeleton />);
   expect(toJSON()).toBeTruthy();
 });
 ```
@@ -1336,9 +1345,10 @@ jest.mock("expo-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+// renderWithQueryClient is async (wraps RNTL's async render()) — always await it.
 test("shows the empty state when there are no transactions", async () => {
   jest.spyOn(transactionsApi, "listTransactions").mockResolvedValue([]);
-  renderWithQueryClient(<HomeScreen />);
+  await renderWithQueryClient(<HomeScreen />);
   await waitFor(() => expect(screen.getByText(/Todavía no registraste gastos/)).toBeTruthy());
 });
 
@@ -1359,7 +1369,7 @@ test("shows a row per transaction", async () => {
       updated_at: "2026-08-20T00:00:00.000Z",
     },
   ]);
-  renderWithQueryClient(<HomeScreen />);
+  await renderWithQueryClient(<HomeScreen />);
   await waitFor(() => expect(screen.getByText("Kiosco")).toBeTruthy());
 });
 
@@ -1369,7 +1379,7 @@ test("shows a retry button on error, which refetches", async () => {
     .mockRejectedValueOnce(new Error("network down"))
     .mockResolvedValueOnce([]);
 
-  renderWithQueryClient(<HomeScreen />);
+  await renderWithQueryClient(<HomeScreen />);
 
   await waitFor(() => expect(screen.getByText("Reintentar")).toBeTruthy());
   fireEvent.press(screen.getByText("Reintentar"));
@@ -1491,9 +1501,10 @@ const account = {
   updated_at: "2026-08-20T00:00:00.000Z",
 };
 
+// renderWithQueryClient is async (wraps RNTL's async render()) — always await it.
 test("Guardar is disabled until an amount and account are set", async () => {
   jest.spyOn(accountsApi, "listAccounts").mockResolvedValue([account]);
-  renderWithQueryClient(<EntryScreen />);
+  await renderWithQueryClient(<EntryScreen />);
 
   await waitFor(() => expect(screen.getByText("Efectivo")).toBeTruthy());
 
@@ -1523,7 +1534,7 @@ test("saving calls createTransaction with a negative amount in cents", async () 
     updated_at: "2026-08-20T00:00:00.000Z",
   });
 
-  renderWithQueryClient(<EntryScreen />);
+  await renderWithQueryClient(<EntryScreen />);
   await waitFor(() => expect(screen.getByText("Efectivo")).toBeTruthy());
 
   fireEvent.changeText(screen.getByPlaceholderText("0.00"), "150");
@@ -1707,8 +1718,9 @@ beforeEach(() => {
   jest.spyOn(categoriesApi, "listCategories").mockResolvedValue([]);
 });
 
+// renderWithQueryClient is async (wraps RNTL's async render()) — always await it.
 test("shows a delete confirmation modal instead of deleting immediately", async () => {
-  renderWithQueryClient(<TransactionDetailScreen />);
+  await renderWithQueryClient(<TransactionDetailScreen />);
   await waitFor(() => expect(screen.getByDisplayValue("Kiosco")).toBeTruthy());
 
   fireEvent.press(screen.getByText("Eliminar"));
@@ -1718,7 +1730,7 @@ test("shows a delete confirmation modal instead of deleting immediately", async 
 
 test("confirming delete calls deleteTransaction with the transaction id", async () => {
   const deleteSpy = jest.spyOn(transactionsApi, "deleteTransaction").mockResolvedValue(undefined);
-  renderWithQueryClient(<TransactionDetailScreen />);
+  await renderWithQueryClient(<TransactionDetailScreen />);
   await waitFor(() => expect(screen.getByDisplayValue("Kiosco")).toBeTruthy());
 
   fireEvent.press(screen.getByText("Eliminar"));
