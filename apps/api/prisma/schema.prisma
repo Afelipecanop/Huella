@@ -132,7 +132,7 @@ model BankTemplate {
   id              String   @id @default(cuid(2))
   bankName        String   @map("bank_name")
   country         String   @db.Char(2)
-  senderPattern   String   @map("sender_pattern")
+  senderPattern   String   @unique @map("sender_pattern")
   extractionRules Json     @map("extraction_rules")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
