@@ -17,4 +17,8 @@ describe("normalizeAmount", () => {
   it("throws on an unparseable string", () => {
     expect(() => normalizeAmount("no es un monto")).toThrow();
   });
+
+  it("throws on signed input", () => {
+    expect(() => normalizeAmount("-85.000,00")).toThrow();
+  });
 });
