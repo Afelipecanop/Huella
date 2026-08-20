@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountType {
+  bank
+  cash
+  wallet
+}
+
+enum CategoryType {
+  income
+  expense
+}
+
+enum TransactionSource {
+  manual
+  email
+}
+
+enum TransactionStatus {
+  pending
+  confirmed
+}
+
+model User {
+  id              String   @id @default(cuid(2))
+  email           String   @unique
+  name            String
+  defaultCurrency String   @map("default_currency") @db.Char(3)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  accounts        Account[]
+  categories      Category[]
+  transactions    Transaction[]
+  ingestionEvents IngestionEvent[]
+
+  @@map("users")
+}
+
+model Account {
+  id        String      @id @default(cuid(2))
+  userId    String      @map("user_id")
+  name      String
+  type      AccountType
+  currency  String      @db.Char(3)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Category {
+  id        String       @id @default(cuid(2))
+  userId    String       @map("user_id")
+  parentId  String?      @map("parent_id")
+  name      String
+  type      CategoryType
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent        Category?     @relation("CategoryToSubcategory", fields: [parentId], references: [id], onDelete: SetNull)
+  subcategories Category[]    @relation("CategoryToSubcategory")
+  transactions  Transaction[]
+
+  @@index([userId])
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Transaction {
+  id         String             @id @default(cuid(2))
+  userId     String             @map("user_id")
+  accountId  String             @map("account_id")
+  categoryId String?            @map("category_id")
+  amount     Int
+  currency   String             @db.Char(3)
+  merchant   String?
+  date       DateTime
+  source     TransactionSource
+  status     TransactionStatus @default(pending)
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @updatedAt @map("updated_at")
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account        Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category       Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  ingestionEvent IngestionEvent?
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([categoryId])
+  @@map("transactions")
+}
+
+// Registro crudo e inmutable de cada correo recibido, se cree o no la
+// transacción. Por eso no tiene updatedAt: nunca se edita.
+model IngestionEvent {
+  id            String   @id @default(cuid(2))
+  userId        String   @map("user_id")
+  templateId    String?  @map("template_id")
+  transactionId String?  @unique @map("transaction_id")
+  rawContent    String   @map("raw_content") @db.Text
+  parsedOk      Boolean  @map("parsed_ok")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template    BankTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  transaction Transaction?  @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([templateId])
+  @@map("ingestion_events")
+}
+
+// Reglas de extracción pensadas para que la comunidad agregue bancos nuevos.
+// extractionRules queda como Json: su shape (ver ExtractionRule en
+// shared-types) es un borrador que se ajustará al construir el parser real
+// en apps/email-worker.
+model BankTemplate {
+  id              String   @id @default(cuid(2))
+  bankName        String   @map("bank_name")
+  country         String   @db.Char(2)
+  senderPattern   String   @map("sender_pattern")
+  extractionRules Json     @map("extraction_rules")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  ingestionEvents IngestionEvent[]
+
+  @@map("bank_templates")
+}

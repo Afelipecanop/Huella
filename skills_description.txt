@@ -1,0 +1,368 @@
+================================================================================
+ DESCRIPCION DE SKILLS INSTALADAS EN ~/.claude/skills
+ Generado a partir de la lectura de cada SKILL.md el 2026-08-19
+================================================================================
+
+Cómo funciona la activación: Claude Code decide automáticamente qué skill usar
+comparando tu petición con el campo "description" de cada SKILL.md. Por eso,
+la forma más fiable de "decirle a Code" que use una skill es:
+  1) Usar en tu petición las palabras clave que aparecen en la columna
+     "Cómo activarla mejor" de cada skill (son casi literales del archivo).
+  2) O invocarla explícitamente escribiendo su nombre, ej: "usa la skill
+     ui-ux-pro-max para..." o, si tiene comando propio, "/slides ...".
+  3) Si dos skills se solapan (p. ej. banner-design y design), sé explícito
+     sobre cuál quieres, o usa el nombre exacto.
+
+Las skills marcadas con "argument-hint" en su cabecera funcionan también como
+comandos tipo /nombre [argumentos] (ej: /brand update, /slides create "tema").
+
+================================================================================
+1. CODEBASE-MEMORY
+================================================================================
+Qué hace: Da acceso al grafo de conocimiento del código (vía el MCP
+codebase-memory-mcp) para responder preguntas ESTRUCTURALES sobre un repo sin
+tener que hacer grep masivo: quién llama a qué función, qué depende de qué,
+código muerto, funciones con alto acoplamiento, impacto de un cambio, etc.
+Es ~500 tokens por consulta frente a ~80K de un grep amplio.
+
+Cómo activarla mejor: pide cosas como "explora el codebase", "quién llama a
+esta función", "qué llama X", "traza la cadena de llamadas", "encuentra
+código muerto", "funciones con muchas dependencias", "candidatos a refactor",
+"impacto de este cambio", "muéstrame la arquitectura". Nota: según tu CLAUDE.md
+global, esta skill/MCP debe priorizarse SIEMPRE sobre grep/Read para preguntas
+de estructura de código, cuando el proyecto ya está indexado (si no, primero
+hay que correr index_repository).
+
+================================================================================
+2. MCP-SENTINEL
+================================================================================
+Qué hace: Agente de seguridad para Skills y servidores MCP instalados.
+Tiene dos capas: (a) un hook en tiempo real (PreToolUse/PostToolUse) que
+bloquea llamadas a dominios maliciosos conocidos y pregunta antes de permitir
+llamadas sospechosas (rutas sensibles como ~/.ssh, variables de entorno tipo
+API_KEY, dominios de exfiltración, comandos peligrosos tipo "curl | bash");
+y (b) un modo de auditoría bajo demanda que escanea las skills/MCP instaladas
+contra bases de datos de vulnerabilidades (GitHub Advisory, CVE, mcpscan.ai,
+Snyk, etc.), compara el contenido con la fuente oficial para detectar copias
+alteradas, y detecta si una skill "de confianza" cambió su comportamiento en
+una actualización (ataque a la cadena de suministro).
+
+Cómo activarla mejor: di "audita mis skills/MCPs", "¿es segura esta skill?",
+"revisa vulnerabilidades", "activa protección en tiempo real", "quiero
+protección runtime", "escanea antes de instalar esto". Además debería
+activarse proactivamente cada vez que estás a punto de instalar una skill o
+MCP nueva (como en la instalación de entra-app-registration).
+
+================================================================================
+3. DEFUDDLE
+================================================================================
+Qué hace: Extrae contenido limpio en Markdown de páginas web usando la CLI
+"defuddle", eliminando navegación, anuncios y ruido. Es preferible a WebFetch
+para páginas web normales porque ahorra tokens.
+
+Cómo activarla mejor: cuando pegues una URL para "leer", "resumir" o
+"analizar" un artículo, blog o documentación estándar, Code debería usarla en
+vez de WebFetch automáticamente. NO se usa para URLs que ya terminan en .md.
+
+================================================================================
+4. JSON-CANVAS
+================================================================================
+Qué hace: Crea y edita archivos .canvas (formato JSON Canvas 1.0) con nodos,
+bordes, grupos y conexiones — los "canvas" visuales de Obsidian (mapas
+mentales, diagramas de flujo, tableros de proyecto).
+
+Cómo activarla mejor: pide "crea un canvas", "haz un mapa mental en
+Obsidian", "conecta estas notas visualmente", o menciona archivos .canvas.
+
+================================================================================
+5. OBSIDIAN-BASES
+================================================================================
+Qué hace: Crea y edita archivos .base de Obsidian (vistas tipo base de datos
+sobre tus notas): tablas, tarjetas, listas o mapas con filtros, fórmulas y
+resúmenes calculados (YAML).
+
+Cómo activarla mejor: pide "crea una Base de Obsidian", "vista de tabla para
+mis tareas", "filtra notas por etiqueta con fórmulas", o menciona archivos
+.base, "Bases", "vistas", "filtros" o "fórmulas" de Obsidian.
+
+================================================================================
+6. OBSIDIAN-CLI
+================================================================================
+Qué hace: Controla una instancia de Obsidian ABIERTA mediante la CLI
+"obsidian" (leer/crear/buscar notas, tareas, propiedades, diario, backlinks,
+etiquetas) y también permite desarrollar/depurar plugins y temas (recargar
+plugin, ver errores, capturar pantalla, inspeccionar DOM, ejecutar JS).
+
+Cómo activarla mejor: pide "busca en mi vault de Obsidian", "crea una nota
+en Obsidian", "recarga este plugin de Obsidian", "depura mi tema de
+Obsidian". Requiere que Obsidian esté abierto.
+
+================================================================================
+7. OBSIDIAN-MARKDOWN
+================================================================================
+Qué hace: Escribe y edita Markdown con extensiones propias de Obsidian:
+wikilinks [[nota]], embebidos ![[nota]], callouts (> [!note]), propiedades
+(frontmatter), etiquetas #tag, comentarios %%oculto%%, resaltado ==texto==,
+fórmulas LaTeX y diagramas Mermaid.
+
+Cómo activarla mejor: cuando trabajes sobre archivos .md destinados a
+Obsidian, o menciones "wikilinks", "callouts", "frontmatter", "embeds" o
+"notas de Obsidian".
+
+================================================================================
+8. BANNER-DESIGN
+================================================================================
+Qué hace: Diseña banners para redes sociales, anuncios, cabeceras web y
+material impreso, generando varias opciones de dirección de arte con
+imágenes creadas por IA (Gemini). Cubre tamaños exactos por plataforma
+(Facebook, Twitter/X, LinkedIn, YouTube, Instagram, Google Ads, hero web) y
+más de 20 estilos (minimalista, glassmorphism, neón, retro, editorial...).
+NO hace edición de vídeo, webs completas ni producción de imprenta.
+
+Cómo activarla mejor: pide "diseña un banner para [plataforma]", "crea una
+cabecera para Twitter/LinkedIn", "banner de anuncio estilo [minimalista/
+neón/...]". Nota: existe solapamiento con la skill "design" (que también
+incluye banners como módulo interno); si quieres específicamente el flujo
+detallado de banners, nombra "banner-design" explícitamente.
+
+================================================================================
+9. BRAND
+================================================================================
+Qué hace: Gestiona identidad de marca — voz/tono, identidad visual, marcos de
+mensajería, organización y validación de assets, gestión de paleta de
+colores y tipografía. Incluye scripts para sincronizar
+docs/brand-guidelines.md con tokens de diseño (JSON/CSS) y validar assets.
+
+Cómo activarla mejor: pide "define la voz de marca", "revisa consistencia de
+marca", "actualiza mis guías de marca", "valida este asset contra la marca".
+Funciona también como comando: /brand update|review|create.
+
+================================================================================
+10. DESIGN-SYSTEM
+================================================================================
+Qué hace: Arquitectura de tokens de diseño en tres capas (primitivo →
+semántico → componente), variables CSS, specs de componentes (estados/
+variantes), integración con Tailwind, y un sistema de generación de
+presentaciones (slides) basado en tokens + Chart.js con lógica contextual
+(estrategia de deck, layout, tipografía, color, emoción).
+
+Cómo activarla mejor: pide "crea tokens de diseño", "define estados de este
+componente (hover/active/disabled)", "config de tema Tailwind", o para
+presentaciones: "genera una presentación de 10 diapositivas para...".
+
+================================================================================
+11. DESIGN
+================================================================================
+Qué hace: Skill "paraguas" que unifica identidad de marca, tokens, UI,
+generación de LOGOS (55 estilos con IA), programas de identidad corporativa
+CIP (50 entregables: tarjetas, mockups, etc.), presentaciones, banners,
+ICONOS SVG (15 estilos con IA) y fotos para redes sociales — todo con
+scripts Python que llaman a Gemini. Enruta internamente a las skills "brand",
+"design-system" y "ui-styling" para sus partes correspondientes.
+
+Cómo activarla mejor: pide "diseña un logo para...", "crea el kit de
+identidad corporativa (CIP)", "genera iconos para la app", "crea fotos para
+Instagram/LinkedIn/Pinterest". Requiere GEMINI_API_KEY configurada. Si sólo
+necesitas banners o solo marca, puedes usar directamente "banner-design" o
+"brand" para evitar ambigüedad.
+
+================================================================================
+12. SLIDES
+================================================================================
+Qué hace: Crea presentaciones HTML estratégicas con Chart.js, tokens de
+diseño, layouts responsivos, fórmulas de copywriting (PAS, AIDA, FAB) y
+estrategias de estructura de deck (pitch, marketing, storytelling).
+
+Cómo activarla mejor: pide "crea una presentación/pitch deck sobre...",
+"diapositivas con gráficos de datos". Comando: /slides create "tema"
+[num-diapositivas].
+
+================================================================================
+13. UI-STYLING
+================================================================================
+Qué hace: Construye interfaces accesibles y bonitas combinando shadcn/ui
+(componentes sobre Radix UI), Tailwind CSS (utility-first) y un sistema de
+diseño tipo "canvas" para composiciones visuales sofisticadas. Incluye
+catálogo completo de componentes, theming/dark mode, patrones de
+accesibilidad y scripts para instalar componentes y generar config de
+Tailwind.
+
+Cómo activarla mejor: pide "crea este formulario/tabla/modal con shadcn",
+"implementa modo oscuro", "hazlo responsive con Tailwind", "revisa
+accesibilidad de este componente".
+
+================================================================================
+14. UI-UX-PRO-MAX
+================================================================================
+Qué hace: Base de datos local de inteligencia UI/UX buscable: 67 estilos,
+161 paletas de color, 57 combinaciones tipográficas, 25 tipos de gráficas y
+guías para 21 stacks (React, Next.js, Vue, Svelte, SwiftUI, Flutter,
+Jetpack Compose, etc.). Genera "sistemas de diseño" completos con
+recomendaciones razonadas (estilo + color + tipografía + efectos +
+anti-patrones) vía un script Python (search.py) y ofrece un checklist de
+buenas prácticas UX (accesibilidad, touch targets, performance, animación,
+formularios, navegación, gráficos).
+
+Cómo activarla mejor: pide "diseña una landing/dashboard", "qué estilo/
+paleta encaja con una app fintech", "revisa esta UI por problemas de UX/
+accesibilidad", "recomiéndame buenas prácticas de React para esto". Es la
+skill de referencia cuando algo "no se ve profesional" y no sabes por qué.
+
+================================================================================
+15-21. HYPERFRAMES (familia de 8 skills para crear/editar VIDEO desde HTML)
+================================================================================
+HyperFrames renderiza vídeo a partir de HTML: una composición es un archivo
+HTML cuyo DOM declara tiempos con atributos data-*, con un runtime de
+animación "seekable" (se puede saltar a cualquier instante) y donde el propio
+framework controla la reproducción de medios. La skill "hyperframes" (sin
+sufijo) es el PUNTO DE ENTRADA obligatorio; el resto son skills de dominio
+que se cargan bajo demanda.
+
+--- hyperframes (punto de entrada) ---
+Qué hace: Es el router principal. Úsalo SIEMPRE primero ante cualquier
+petición de crear, editar, animar o renderizar un vídeo, animación, motion
+graphic, promo, explicador, clip con subtítulos, tarjeta de título,
+overlay, slideshow o "deck" interactivo, o cualquier composición HTML de
+HyperFrames. Detecta el estado del proyecto (nuevo / con brief / con
+proyecto existente) y decide a qué workflow especializado enrutar (p. ej.
+/slideshow, /product-launch-video, /faceless-explainer, /music-to-video,
+/motion-graphics, /pr-to-video, /general-video, etc.), instalando ese
+workflow y cargando las skills de dominio necesarias.
+
+Cómo activarla mejor: cualquier petición de vídeo/animación. Di lo que
+quieres lograr (p. ej. "haz un vídeo explicando esta web", "un promo de 20s
+para este producto", "convierte esta música en un vídeo con el ritmo") y
+deja que la skill decida el flujo; no la nombres tú mismo, se auto-activa.
+
+--- hyperframes-core ---
+Qué hace: El "contrato técnico" de una composición: estructura del HTML,
+atributos data-*, class="clip", pistas/tracks, sub-composiciones, variables,
+reglas de renderizado determinista y validación. Es lectura obligatoria
+antes de escribir HTML de una composición.
+
+Cómo activarla mejor: se carga automáticamente al construir/editar el HTML
+de la composición (cortes, recortes, reordenar clips, temporización).
+
+--- hyperframes-animation ---
+Qué hace: Todo el conocimiento de animación: reglas atómicas de movimiento,
+plantillas de escena multi-fase ("blueprints"), transiciones entre escenas,
+y los 7 adaptadores de runtime (GSAP por defecto, Lottie, Three.js,
+Anime.js, CSS keyframes, Web Animations API, TypeGPU).
+
+Cómo activarla mejor: para cualquier tarea de animación/movimiento dentro
+de una composición HyperFrames ya iniciada.
+
+--- hyperframes-keyframes ---
+Qué hace: Zoom, punch-in/punch-out, reencuadres, movimientos de cámara tipo
+Ken Burns, transiciones tipo "whip pan", máscaras, morphing SVG, animación
+3D — todo con "keyframes" seguros para saltar en el tiempo (seek-safe).
+
+Cómo activarla mejor: para "haz zoom aquí", "efecto Ken Burns",
+"movimiento de cámara", "transición estilo whip pan".
+
+--- hyperframes-audio ---
+Qué hace: Mezcla de audio YA colocado en la composición: fade in/out,
+crossfade, volumen por pista, automatización, "ducking"/carve de voz en off
+sobre música de fondo, y cadena de efectos (EQ, compresor, limiter, gate,
+saturación, delay, reverb, chorus, phaser, bitcrush).
+
+Cómo activarla mejor: "baja la música cuando habla el narrador", "añade
+reverb a esta pista", "haz un fade out al final". NO se usa para buscar o
+generar audio (eso es media-use).
+
+--- hyperframes-cli ---
+Qué hace: El flujo de comandos de desarrollo de la CLI "npx hyperframes":
+init, add, catalog, lint, check, preview, render (local/nube/Lambda/Cloud
+Run), publish, feedback, doctor, etc. También para diagnosticar fallos de
+build o render.
+
+Cómo activarla mejor: se usa internamente durante todo el ciclo de vida de
+un proyecto HyperFrames (crear, validar, previsualizar, renderizar).
+
+--- hyperframes-creative ---
+Qué hace: Dirección creativa NO relacionada con animación: paletas,
+tipografía, narración/guion, planificación de ritmo ("beats"), visuales
+reactivos al audio, y decisiones de marca/estilo para el vídeo.
+
+Cómo activarla mejor: "qué paleta/tipografía encaja con este vídeo", "escribe
+la narración", "planifica el ritmo de las escenas".
+
+--- hyperframes-registry ---
+Qué hace: Instala, descubre y conecta "bloques" (sub-composiciones
+reutilizables) y "componentes" (snippets de efectos) del registro público
+de HyperFrames mediante "hyperframes add" / "hyperframes catalog", en vez de
+programar el efecto a mano.
+
+Cómo activarla mejor: "busca si ya existe un efecto de tipo [X] en el
+catálogo antes de programarlo desde cero".
+
+================================================================================
+22. MEDIA-USE
+================================================================================
+Qué hace: El "sistema operativo de medios" de HyperFrames — un único verbo
+"resolve" para conseguir música de fondo, efectos de sonido, imágenes,
+iconos, logos de marca oficiales, voz (TTS), corrección de color/LUTs,
+siempre dejando un archivo local o bloque listo para pegar. También genera
+contenido cuando el catálogo no tiene lo necesario, produce voz en off,
+transcripción, subtítulos y elimina fondos, y sugiere proactivamente mejoras
+de medios (música que falta, iconos con emoji que deberían ser SVG, imagen
+pixelada, etc.).
+
+Cómo activarla mejor: "necesito música de fondo para este vídeo", "búscame
+un icono de...", "genera la voz en off", "quita el fondo de esta imagen",
+"corrige el color de este vídeo", "esta imagen se ve muy oscura/plana".
+
+================================================================================
+23. REMOVE-AI-MARKS
+================================================================================
+Qué hace: Elimina marcas de procedencia de IA multi-proveedor: Unicode
+invisible, marcas de agua estadísticas en texto (mediante reescritura),
+y metadatos C2PA/EXIF/XMP en imágenes, PDF, DOCX, SVG, HTML, MD (Claude,
+Gemini/SynthID, OpenAI, modelos abiertos). Es un cliente ligero que llama a
+un servicio HTTP local (docker/make serve) — nunca limpia nada por su
+cuenta si el servicio no está disponible.
+
+Cómo activarla mejor: "quita las marcas de agua de este texto/imagen",
+"limpia los metadatos C2PA/EXIF de este archivo", "elimina el Unicode
+invisible", o ejecuta /remove-ai-marks. Uso previsto: contenido propio
+(privacidad/higiene), no para hacer pasar contenido de IA como humano de
+forma fraudulenta.
+
+================================================================================
+24. ENTRA-APP-REGISTRATION  (instalada hoy desde microsoft/azure-skills)
+================================================================================
+Qué hace: Guía el registro de aplicaciones en Microsoft Entra ID (antes
+Azure AD), autenticación OAuth 2.0 e integración con MSAL. Cubre: crear el
+app registration (Portal, CLI de Azure o Bicep/IaC), configurar tipos de
+app (Web, SPA, móvil/nativa, daemon/servicio), permisos de Microsoft Graph,
+credenciales de cliente (secreto/certificado/federated identity), ejemplos
+de app de consola con MSAL en C#/Python/JS, autenticación servicio-a-
+servicio (client credentials flow), buenas prácticas de seguridad, y
+referencias de SDK (Azure Identity, Key Vault) en Python/.NET/TS/Java/Rust.
+
+Cómo activarla mejor: pide "crea un app registration en Entra/Azure AD",
+"registra mi app en Azure", "configura OAuth para mi app", "añade permisos
+de API a mi app registration", "genera un service principal", "ejemplo MSAL
+para consola", "configura autenticación con Entra ID". NO usarla para
+secretos de Key Vault (eso sería otra skill, azure-keyvault-expiration-
+audit, no instalada) ni para seguridad general de recursos Azure.
+
+================================================================================
+ RESUMEN RÁPIDO POR CATEGORÍA
+================================================================================
+- Código/estructura de repos ......... codebase-memory
+- Seguridad de skills/MCP ............ mcp-sentinel
+- Lectura de páginas web ............. defuddle
+- Obsidian (notas/vault) ............. json-canvas, obsidian-bases,
+                                        obsidian-cli, obsidian-markdown
+- Diseño de marca/UI/gráficos ........ brand, design-system, design,
+                                        banner-design, slides, ui-styling,
+                                        ui-ux-pro-max
+- Vídeo/animación (HyperFrames) ...... hyperframes, hyperframes-core,
+                                        hyperframes-animation,
+                                        hyperframes-keyframes,
+                                        hyperframes-audio, hyperframes-cli,
+                                        hyperframes-creative,
+                                        hyperframes-registry, media-use
+- Privacidad / anti-huella de IA ..... remove-ai-marks
+- Azure / Identidad .................. entra-app-registration
