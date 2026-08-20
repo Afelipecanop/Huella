@@ -58,10 +58,10 @@ Si el parseo automático de un correo falla, el dato nunca se pierde: queda como
 | API (`apps/api` — Fastify + Prisma + PostgreSQL) | ✅ Listo — CRUD de cuentas, categorías, transacciones y plantillas de banco |
 | App móvil (`apps/mobile` — Expo + Expo Router) | ✅ Listo — loop principal: lista, entrada manual, detalle/edición |
 | Motor de parseo de bancos (`@huella/bank-templates`) | ✅ Listo — plantilla de Bancolombia validada de punta a punta |
-| Captura automática por correo (`apps/email-worker`) | 🚧 En diseño |
-| Autenticación real (JWT/sesiones) | ⏳ Pendiente — hoy usa un placeholder (`x-user-id`) |
-| CI + documentación de arquitectura | ⏳ Pendiente |
-| Tests automatizados en `apps/api` | ⏳ Pendiente — hoy solo `apps/mobile` y `packages/bank-templates` tienen suite |
+| Captura automática por correo (`apps/email-worker`) |  En diseño |
+| Autenticación real (JWT/sesiones) |  Pendiente — hoy usa un placeholder (`x-user-id`) |
+| CI + documentación de arquitectura |  Pendiente |
+| Tests automatizados en `apps/api` |  Pendiente — hoy solo `apps/mobile` y `packages/bank-templates` tienen suite |
 
 ## 🏗️ Arquitectura
 
@@ -139,7 +139,7 @@ flowchart LR
 - **Fase 4 — Motor de parseo de bancos.** `packages/bank-templates`: `matchTemplate`/`extractFields` (motor genérico basado en regex), la plantilla de Bancolombia y un fixture de correo realista que valida el patrón de punta a punta. Una revisión final encontró y corrigió un bug real: el regex de comercio no estaba anclado y capturaba texto incorrecto en frases realistas tipo "Compra en línea por $X en TIENDA el...".
 - **Fase 5 — Captura por correo (en diseño).** `apps/email-worker`: Cloudflare Email Worker que identifica al usuario por el destinatario del correo (`<user_id>@ingest.huella.app`), parsea el MIME con `postal-mime`, usa `@huella/bank-templates` para extraer los campos, y escribe directo a Postgres vía Prisma + Cloudflare Hyperdrive (no a través de la API). Para resolver a qué cuenta pertenece cada transacción parseada, `Account` va a sumar un campo `bank_template_id` opcional.
 
-## 🗃️ Modelo de datos (núcleo)
+##  Modelo de datos (núcleo)
 
 - **Users** — id, email, name, default_currency
 - **Accounts** — banco, efectivo o billetera; la cuenta "efectivo" es una fila más, sin caso especial
@@ -148,7 +148,7 @@ flowchart LR
 - **IngestionEvents** — registro crudo e inmutable de cada correo recibido, se cree o no la transacción
 - **BankTemplates** — reglas de extracción por banco, pensadas para que la comunidad agregue bancos nuevos
 
-## 🧰 Stack técnico
+##  Stack técnico
 
 | Categoría | Tecnología |
 |---|---|
@@ -206,7 +206,7 @@ cp apps/mobile/.env.example apps/mobile/.env
 pnpm --filter @huella/mobile start
 ```
 
-## 🧪 Cómo correr los tests
+##  Cómo correr los tests
 
 ```bash
 # App móvil (Jest + Testing Library)
