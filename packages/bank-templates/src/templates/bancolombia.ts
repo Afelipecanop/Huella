@@ -10,7 +10,11 @@ export const bancolombiaTemplate: CreateBankTemplate = {
   sender_pattern: "^alertasynotificaciones@bancolombia\\.com\\.co$",
   extraction_rules: [
     { field: "amount", pattern: "por \\$([\\d.,]+)", group: 1 },
-    { field: "merchant", pattern: "en (.+?) el", group: 1 },
+    {
+      field: "merchant",
+      pattern: "por \\$[\\d.,]+ en (.+?) el \\d{2}/\\d{2}/\\d{4} a las \\d{2}:\\d{2}",
+      group: 1,
+    },
     { field: "date", pattern: "el (\\d{2}/\\d{2}/\\d{4} a las \\d{2}:\\d{2})", group: 1 },
   ],
 };
