@@ -46,7 +46,7 @@
 **Interfaces:**
 - Produces: a working `@huella/mobile` package registered in the pnpm workspace, with `pnpm --filter @huella/mobile typecheck` and `pnpm --filter @huella/mobile start` both working.
 
-- [ ] **Step 1: Remove the placeholder and scaffold**
+- [x] **Step 1: Remove the placeholder and scaffold**
 
 ```bash
 rm apps/mobile/.gitkeep
@@ -55,7 +55,7 @@ npx create-expo-app@latest . --template blank-typescript
 cd ../..
 ```
 
-- [ ] **Step 2: Rename the package and add a typecheck script**
+- [x] **Step 2: Rename the package and add a typecheck script**
 
 Open `apps/mobile/package.json`. Change `"name"` to `"@huella/mobile"` and add a `typecheck` script alongside the existing ones:
 
@@ -70,18 +70,18 @@ Open `apps/mobile/package.json`. Change `"name"` to `"@huella/mobile"` and add a
 
 (Keep every other field/script the template generated — only change `name` and add `typecheck`.)
 
-- [ ] **Step 3: Install workspace dependencies**
+- [x] **Step 3: Install workspace dependencies**
 
 ```bash
 corepack pnpm install
 ```
 
-- [ ] **Step 4: Verify it typechecks**
+- [x] **Step 4: Verify it typechecks**
 
 Run: `corepack pnpm --filter @huella/mobile run typecheck`
 Expected: exits with no output/errors (the template's default `App.tsx` is valid TypeScript).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/mobile package.json pnpm-lock.yaml pnpm-workspace.yaml
@@ -99,7 +99,7 @@ git commit -m "feat(mobile): scaffold Expo TypeScript app"
 **Interfaces:**
 - Produces: `pnpm --filter @huella/mobile test` runs Jest via the `jest-expo` preset and passes.
 
-- [ ] **Step 1: Install test dependencies**
+- [x] **Step 1: Install test dependencies**
 
 ```bash
 cd apps/mobile
@@ -108,7 +108,7 @@ cd ../..
 corepack pnpm add -D --filter @huella/mobile @testing-library/react-native @types/jest
 ```
 
-- [ ] **Step 2: Add the Jest config and test script to `apps/mobile/package.json`**
+- [x] **Step 2: Add the Jest config and test script to `apps/mobile/package.json`**
 
 Add (don't remove existing fields):
 
@@ -126,7 +126,7 @@ Add (don't remove existing fields):
 }
 ```
 
-- [ ] **Step 3: Write a trivial smoke test**
+- [x] **Step 3: Write a trivial smoke test**
 
 `apps/mobile/src/components/__tests__/smoke.test.tsx`:
 
@@ -143,12 +143,12 @@ test("renders text", async () => {
 });
 ```
 
-- [ ] **Step 4: Run it**
+- [x] **Step 4: Run it**
 
 Run: `corepack pnpm --filter @huella/mobile test`
 Expected: 1 passed test suite, 1 passed test.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/mobile/package.json apps/mobile/src/components/__tests__/smoke.test.tsx
@@ -173,14 +173,14 @@ git commit -m "test(mobile): add jest-expo + RNTL test infra"
 **Interfaces:**
 - Produces: `colors.light`, `colors.dark` (both `Record<"background"|"surface"|"foreground"|"mutedForeground"|"border"|"primary"|"destructive", string>`), `spacing` (`Record<"xs"|"sm"|"md"|"lg"|"xl"|"xxl", number>`), `fonts` (`{ heading: string; body: string }`) — consumed by every screen/component from here on via `className` (NativeWind) or direct import.
 
-- [ ] **Step 1: Install NativeWind and Tailwind**
+- [x] **Step 1: Install NativeWind and Tailwind**
 
 ```bash
 corepack pnpm add --filter @huella/mobile nativewind
 corepack pnpm add -D --filter @huella/mobile tailwindcss@^3.4.0
 ```
 
-- [ ] **Step 2: Write the token files**
+- [x] **Step 2: Write the token files**
 
 `apps/mobile/src/theme/colors.ts`:
 
@@ -231,7 +231,7 @@ export const fonts = {
 } as const;
 ```
 
-- [ ] **Step 2b: Write the token test**
+- [x] **Step 2b: Write the token test**
 
 `apps/mobile/src/theme/__tests__/colors.test.ts`:
 
@@ -262,7 +262,7 @@ test("light and dark use different values (no accidental copy-paste)", () => {
 });
 ```
 
-- [ ] **Step 3: Write `tailwind.config.js`**
+- [x] **Step 3: Write `tailwind.config.js`**
 
 ```js
 const { colors } = require("./src/theme/colors");
@@ -298,7 +298,7 @@ module.exports = {
 
 (`darkMode: "media"` makes every `dark:` class follow the OS setting automatically — no manual toggle logic needed anywhere else in the app.)
 
-- [ ] **Step 4: Write `global.css`**
+- [x] **Step 4: Write `global.css`**
 
 ```css
 @tailwind base;
@@ -306,13 +306,13 @@ module.exports = {
 @tailwind utilities;
 ```
 
-- [ ] **Step 5: Write `nativewind-env.d.ts`**
+- [x] **Step 5: Write `nativewind-env.d.ts`**
 
 ```ts
 /// <reference types="nativewind/types" />
 ```
 
-- [ ] **Step 6: Update `apps/mobile/babel.config.js`**
+- [x] **Step 6: Update `apps/mobile/babel.config.js`**
 
 ```js
 module.exports = function (api) {
@@ -326,7 +326,7 @@ module.exports = function (api) {
 };
 ```
 
-- [ ] **Step 7: Create/update `apps/mobile/metro.config.js`**
+- [x] **Step 7: Create/update `apps/mobile/metro.config.js`**
 
 ```js
 const { getDefaultConfig } = require("expo/metro-config");
@@ -337,12 +337,12 @@ const config = getDefaultConfig(__dirname);
 module.exports = withNativeWind(config, { input: "./global.css" });
 ```
 
-- [ ] **Step 8: Run the tests**
+- [x] **Step 8: Run the tests**
 
 Run: `corepack pnpm --filter @huella/mobile test`
 Expected: all tests pass (smoke test + the two new token tests).
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add apps/mobile/src/theme apps/mobile/tailwind.config.js apps/mobile/global.css apps/mobile/nativewind-env.d.ts apps/mobile/babel.config.js apps/mobile/metro.config.js apps/mobile/package.json pnpm-lock.yaml
@@ -363,7 +363,7 @@ git commit -m "feat(mobile): design tokens + NativeWind with light/dark support"
 **Interfaces:**
 - Produces: a `Stack` navigator with three registered screens (`index`, `entry` as a modal, `transaction/[id]`) and font loading via `expo-font`. `entry.tsx` and `transaction/[id].tsx` are created as placeholders here and fleshed out in Tasks 11–12.
 
-- [ ] **Step 1: Install router dependencies**
+- [x] **Step 1: Install router dependencies**
 
 ```bash
 cd apps/mobile
@@ -371,7 +371,7 @@ npx expo install expo-router expo-linking expo-constants expo-status-bar react-n
 cd ../..
 ```
 
-- [ ] **Step 2: Point the app entry at Expo Router**
+- [x] **Step 2: Point the app entry at Expo Router**
 
 In `apps/mobile/package.json`, set:
 
@@ -383,7 +383,7 @@ In `apps/mobile/package.json`, set:
 
 Delete `apps/mobile/App.tsx` — it's replaced by the `app/` directory.
 
-- [ ] **Step 3: Update `apps/mobile/app.json`**
+- [x] **Step 3: Update `apps/mobile/app.json`**
 
 Add (inside the existing `"expo"` object, keep everything else the template generated):
 
@@ -396,7 +396,7 @@ Add (inside the existing `"expo"` object, keep everything else the template gene
 }
 ```
 
-- [ ] **Step 4: Write placeholder route files**
+- [x] **Step 4: Write placeholder route files**
 
 `apps/mobile/app/entry.tsx`:
 
@@ -440,7 +440,7 @@ export default function HomeScreen() {
 }
 ```
 
-- [ ] **Step 5: Write `apps/mobile/app/_layout.tsx`**
+- [x] **Step 5: Write `apps/mobile/app/_layout.tsx`**
 
 ```tsx
 import "../global.css";
@@ -465,7 +465,7 @@ export default function RootLayout() {
 }
 ```
 
-- [ ] **Step 6: Verify it typechecks and tests still pass**
+- [x] **Step 6: Verify it typechecks and tests still pass**
 
 Run: `corepack pnpm --filter @huella/mobile run typecheck`
 Expected: no errors.
@@ -473,7 +473,7 @@ Expected: no errors.
 Run: `corepack pnpm --filter @huella/mobile test`
 Expected: all tests still pass (routing has no tests yet — that's fine, this task is scaffolding).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/mobile
@@ -493,27 +493,27 @@ git commit -m "feat(mobile): Expo Router skeleton (home, entry modal, detail)"
 **Interfaces:**
 - Produces: `API_BASE_URL: string`, `DEV_USER_ID: string` (from `src/config.ts`); `renderWithQueryClient(ui: ReactElement): Promise<RenderResult>` (async — must be awaited, see note in Step 4) and `renderHookWithQueryClient<TResult, TProps>(callback: (props: TProps) => TResult)` (from `src/test-utils/renderWithQueryClient.tsx`) — every subsequent hook/screen test uses these.
 
-- [ ] **Step 1: Install TanStack Query**
+- [x] **Step 1: Install TanStack Query**
 
 ```bash
 corepack pnpm add --filter @huella/mobile @tanstack/react-query
 ```
 
-- [ ] **Step 2: Write `apps/mobile/src/config.ts`**
+- [x] **Step 2: Write `apps/mobile/src/config.ts`**
 
 ```ts
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
 export const DEV_USER_ID = process.env.EXPO_PUBLIC_DEV_USER_ID ?? "";
 ```
 
-- [ ] **Step 3: Write `apps/mobile/.env.example`**
+- [x] **Step 3: Write `apps/mobile/.env.example`**
 
 ```
 EXPO_PUBLIC_API_URL=http://localhost:3000
 EXPO_PUBLIC_DEV_USER_ID=
 ```
 
-- [ ] **Step 4: Write the test helper**
+- [x] **Step 4: Write the test helper**
 
 `apps/mobile/src/test-utils/renderWithQueryClient.tsx`:
 
@@ -548,7 +548,7 @@ export function renderHookWithQueryClient<TResult, TProps>(
 }
 ```
 
-- [ ] **Step 5: Wire `QueryClientProvider` into the root layout**
+- [x] **Step 5: Wire `QueryClientProvider` into the root layout**
 
 Modify `apps/mobile/app/_layout.tsx` — wrap the existing `<Stack>` (keep its three `<Stack.Screen>` children exactly as they are):
 
@@ -580,7 +580,7 @@ export default function RootLayout() {
 }
 ```
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run: `corepack pnpm --filter @huella/mobile run typecheck`
 Expected: no errors.
@@ -588,7 +588,7 @@ Expected: no errors.
 Run: `corepack pnpm --filter @huella/mobile test`
 Expected: all tests still pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/mobile/src/config.ts apps/mobile/src/test-utils apps/mobile/app/_layout.tsx apps/mobile/.env.example apps/mobile/package.json pnpm-lock.yaml
@@ -608,7 +608,7 @@ git commit -m "feat(mobile): config, TanStack Query provider, test utilities"
 - Consumes: `API_BASE_URL`, `DEV_USER_ID` from `../config` (Task 5).
 - Produces: `class ApiError extends Error { status: number; issues?: unknown }`; `function apiRequest<T>(path: string, options?: { method?: "GET"|"POST"|"PATCH"|"DELETE"; body?: unknown }): Promise<T>` — every `src/api/*.ts` file in Task 7 imports `apiRequest` and `ApiError` from here.
 
-- [ ] **Step 1: Add the shared-types workspace dependency**
+- [x] **Step 1: Add the shared-types workspace dependency**
 
 In `apps/mobile/package.json`, add to `"dependencies"`:
 
@@ -622,7 +622,7 @@ In `apps/mobile/package.json`, add to `"dependencies"`:
 
 Run: `corepack pnpm install`
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 `apps/mobile/src/api/__tests__/client.test.ts`:
 
@@ -687,12 +687,12 @@ describe("apiRequest", () => {
 });
 ```
 
-- [ ] **Step 3: Run it to see it fail**
+- [x] **Step 3: Run it to see it fail**
 
 Run: `corepack pnpm --filter @huella/mobile test src/api/__tests__/client.test.ts`
 Expected: FAIL — `Cannot find module '../client'`.
 
-- [ ] **Step 4: Write `apps/mobile/src/api/client.ts`**
+- [x] **Step 4: Write `apps/mobile/src/api/client.ts`**
 
 ```ts
 import { API_BASE_URL, DEV_USER_ID } from "../config";
@@ -751,12 +751,12 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 }
 ```
 
-- [ ] **Step 5: Run the tests again**
+- [x] **Step 5: Run the tests again**
 
 Run: `corepack pnpm --filter @huella/mobile test src/api/__tests__/client.test.ts`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/mobile/src/api apps/mobile/package.json pnpm-lock.yaml
@@ -777,7 +777,7 @@ git commit -m "feat(mobile): typed API client with ApiError normalization"
 - Consumes: `apiRequest` from `./client` (Task 6); `Account`, `Category`, `Transaction`, `CreateManualTransaction`, `UpdateTransaction` types from `@huella/shared-types`.
 - Produces: `listAccounts(): Promise<Account[]>`; `listCategories(): Promise<Category[]>`; `listTransactions(): Promise<Transaction[]>`, `getTransaction(id: string): Promise<Transaction>`, `createTransaction(payload: CreateManualTransaction): Promise<Transaction>`, `updateTransaction(id: string, payload: UpdateTransaction): Promise<Transaction>`, `deleteTransaction(id: string): Promise<void>` — every hook in Task 8 imports from here.
 
-- [ ] **Step 1: Write `apps/mobile/src/api/accounts.ts`**
+- [x] **Step 1: Write `apps/mobile/src/api/accounts.ts`**
 
 ```ts
 import { apiRequest } from "./client";
@@ -788,7 +788,7 @@ export function listAccounts() {
 }
 ```
 
-- [ ] **Step 2: Write `apps/mobile/src/api/categories.ts`**
+- [x] **Step 2: Write `apps/mobile/src/api/categories.ts`**
 
 ```ts
 import { apiRequest } from "./client";
@@ -799,7 +799,7 @@ export function listCategories() {
 }
 ```
 
-- [ ] **Step 3: Write the failing test for transactions**
+- [x] **Step 3: Write the failing test for transactions**
 
 `apps/mobile/src/api/__tests__/transactions.test.ts`:
 
@@ -854,12 +854,12 @@ test("deleteTransaction deletes the given id", async () => {
 });
 ```
 
-- [ ] **Step 4: Run it to see it fail**
+- [x] **Step 4: Run it to see it fail**
 
 Run: `corepack pnpm --filter @huella/mobile test src/api/__tests__/transactions.test.ts`
 Expected: FAIL — `Cannot find module '../transactions'`.
 
-- [ ] **Step 5: Write `apps/mobile/src/api/transactions.ts`**
+- [x] **Step 5: Write `apps/mobile/src/api/transactions.ts`**
 
 ```ts
 import { apiRequest } from "./client";
@@ -886,12 +886,12 @@ export function deleteTransaction(id: string) {
 }
 ```
 
-- [ ] **Step 6: Run the tests again**
+- [x] **Step 6: Run the tests again**
 
 Run: `corepack pnpm --filter @huella/mobile test src/api`
 Expected: PASS, all `src/api` tests (client + transactions).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/mobile/src/api
@@ -916,7 +916,7 @@ git commit -m "feat(mobile): typed API resource functions (accounts, categories,
 - Consumes: `listAccounts`, `listCategories`, `listTransactions`, `getTransaction`, `createTransaction`, `updateTransaction`, `deleteTransaction` from `../api/*` (Task 7); `renderHookWithQueryClient` from `../test-utils/renderWithQueryClient` (Task 5).
 - Produces: `useAccounts()`, `useCategories()`, `useTransactions()`, `useTransaction(id: string)` (each a `UseQueryResult`); `useCreateTransaction()`, `useUpdateTransaction(id: string)`, `useDeleteTransaction()` (each a `UseMutationResult`, all invalidating the `["transactions"]` query key on success) — consumed by every screen in Tasks 10–12.
 
-- [ ] **Step 1: Write the read hooks**
+- [x] **Step 1: Write the read hooks**
 
 `apps/mobile/src/hooks/useAccounts.ts`:
 
@@ -962,7 +962,7 @@ export function useTransaction(id: string) {
 }
 ```
 
-- [ ] **Step 2: Write the failing test for the create mutation**
+- [x] **Step 2: Write the failing test for the create mutation**
 
 `apps/mobile/src/hooks/__tests__/useCreateTransaction.test.ts`:
 
@@ -1000,12 +1000,12 @@ test("creates a transaction and resolves with the API response", async () => {
 });
 ```
 
-- [ ] **Step 3: Run it to see it fail**
+- [x] **Step 3: Run it to see it fail**
 
 Run: `corepack pnpm --filter @huella/mobile test src/hooks/__tests__/useCreateTransaction.test.ts`
 Expected: FAIL — `Cannot find module '../useCreateTransaction'`.
 
-- [ ] **Step 4: Write the mutation hooks**
+- [x] **Step 4: Write the mutation hooks**
 
 `apps/mobile/src/hooks/useCreateTransaction.ts`:
 
@@ -1059,12 +1059,12 @@ export function useDeleteTransaction() {
 }
 ```
 
-- [ ] **Step 5: Run the tests again**
+- [x] **Step 5: Run the tests again**
 
 Run: `corepack pnpm --filter @huella/mobile test src/hooks`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/mobile/src/hooks
@@ -1088,7 +1088,7 @@ git commit -m "feat(mobile): TanStack Query hooks for accounts/categories/transa
 - Consumes: `Transaction` type from `@huella/shared-types`.
 - Produces: `<Money amountCents: number, currency: string />`; `<EmptyState title: string, message: string, actionLabel?: string, onAction?: () => void />`; `<TransactionRow transaction: Transaction, onPress: (id: string) => void />`; `<TransactionListSkeleton />` — consumed by the Home screen in Task 10.
 
-- [ ] **Step 1: Write the failing test for Money**
+- [x] **Step 1: Write the failing test for Money**
 
 `apps/mobile/src/components/__tests__/Money.test.tsx`:
 
@@ -1108,12 +1108,12 @@ test("renders a positive amount without a minus sign", async () => {
 });
 ```
 
-- [ ] **Step 2: Run it to see it fail**
+- [x] **Step 2: Run it to see it fail**
 
 Run: `corepack pnpm --filter @huella/mobile test src/components/__tests__/Money.test.tsx`
 Expected: FAIL — `Cannot find module '../Money'`.
 
-- [ ] **Step 3: Write `apps/mobile/src/components/Money.tsx`**
+- [x] **Step 3: Write `apps/mobile/src/components/Money.tsx`**
 
 ```tsx
 import { Text } from "react-native";
@@ -1145,7 +1145,7 @@ export function Money({ amountCents, currency }: MoneyProps) {
 }
 ```
 
-- [ ] **Step 4: Write `apps/mobile/src/components/EmptyState.tsx`**
+- [x] **Step 4: Write `apps/mobile/src/components/EmptyState.tsx`**
 
 ```tsx
 import { Pressable, Text, View } from "react-native";
@@ -1179,7 +1179,7 @@ export function EmptyState({ title, message, actionLabel, onAction }: EmptyState
 }
 ```
 
-- [ ] **Step 5: Write the failing test for TransactionRow**
+- [x] **Step 5: Write the failing test for TransactionRow**
 
 `apps/mobile/src/components/__tests__/TransactionRow.test.tsx`:
 
@@ -1222,12 +1222,12 @@ test("calls onPress with the transaction id when tapped", async () => {
 });
 ```
 
-- [ ] **Step 6: Run it to see it fail**
+- [x] **Step 6: Run it to see it fail**
 
 Run: `corepack pnpm --filter @huella/mobile test src/components/__tests__/TransactionRow.test.tsx`
 Expected: FAIL — `Cannot find module '../TransactionRow'`.
 
-- [ ] **Step 7: Write `apps/mobile/src/components/TransactionRow.tsx`**
+- [x] **Step 7: Write `apps/mobile/src/components/TransactionRow.tsx`**
 
 ```tsx
 import { Pressable, Text, View } from "react-native";
@@ -1264,7 +1264,7 @@ export function TransactionRow({ transaction, onPress }: TransactionRowProps) {
 }
 ```
 
-- [ ] **Step 8: Write `apps/mobile/src/components/TransactionListSkeleton.tsx`**
+- [x] **Step 8: Write `apps/mobile/src/components/TransactionListSkeleton.tsx`**
 
 A static skeleton (no shimmer animation — keeps this dependency-free) shown while the first `GET /transactions` is in flight, instead of a blank spinner.
 
@@ -1291,7 +1291,7 @@ export function TransactionListSkeleton() {
 }
 ```
 
-- [ ] **Step 9: Write its test**
+- [x] **Step 9: Write its test**
 
 `apps/mobile/src/components/__tests__/TransactionListSkeleton.test.tsx`:
 
@@ -1306,12 +1306,12 @@ test("renders 5 placeholder rows", async () => {
 });
 ```
 
-- [ ] **Step 10: Run all component tests**
+- [x] **Step 10: Run all component tests**
 
 Run: `corepack pnpm --filter @huella/mobile test src/components`
 Expected: PASS.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add apps/mobile/src/components
@@ -1329,7 +1329,7 @@ git commit -m "feat(mobile): Money, EmptyState, TransactionRow, TransactionListS
 **Interfaces:**
 - Consumes: `useTransactions` (Task 8), `TransactionRow`, `EmptyState`, `TransactionListSkeleton` (Task 9), `renderWithQueryClient` (Task 5).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `apps/mobile/app/__tests__/index.test.tsx`:
 
@@ -1388,12 +1388,12 @@ test("shows a retry button on error, which refetches", async () => {
 });
 ```
 
-- [ ] **Step 2: Run it to see it fail**
+- [x] **Step 2: Run it to see it fail**
 
 Run: `corepack pnpm --filter @huella/mobile test app/__tests__/index.test.tsx`
 Expected: FAIL (the current `index.tsx` placeholder doesn't render a list or empty state).
 
-- [ ] **Step 3: Replace `apps/mobile/app/index.tsx`**
+- [x] **Step 3: Replace `apps/mobile/app/index.tsx`**
 
 ```tsx
 import { FlatList, RefreshControl, Text, View } from "react-native";
@@ -1453,12 +1453,12 @@ export default function HomeScreen() {
 }
 ```
 
-- [ ] **Step 4: Run the tests again**
+- [x] **Step 4: Run the tests again**
 
 Run: `corepack pnpm --filter @huella/mobile test app/__tests__/index.test.tsx`
 Expected: PASS, 3 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/mobile/app
@@ -1476,7 +1476,7 @@ git commit -m "feat(mobile): Home screen with transaction list, empty state, pul
 **Interfaces:**
 - Consumes: `useAccounts` (Task 8), `useCreateTransaction` (Task 8), `renderWithQueryClient` (Task 5).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `apps/mobile/app/__tests__/entry.test.tsx`:
 
@@ -1548,12 +1548,12 @@ test("saving calls createTransaction with a negative amount in cents", async () 
 });
 ```
 
-- [ ] **Step 2: Run it to see it fail**
+- [x] **Step 2: Run it to see it fail**
 
 Run: `corepack pnpm --filter @huella/mobile test app/__tests__/entry.test.tsx`
 Expected: FAIL (the current `entry.tsx` placeholder has no form).
 
-- [ ] **Step 3: Replace `apps/mobile/app/entry.tsx`**
+- [x] **Step 3: Replace `apps/mobile/app/entry.tsx`**
 
 ```tsx
 import { useEffect, useState } from "react";
@@ -1657,12 +1657,12 @@ export default function EntryScreen() {
 }
 ```
 
-- [ ] **Step 4: Run the tests again**
+- [x] **Step 4: Run the tests again**
 
 Run: `corepack pnpm --filter @huella/mobile test app/__tests__/entry.test.tsx`
 Expected: PASS, 2 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/mobile/app
@@ -1680,7 +1680,7 @@ git commit -m "feat(mobile): manual cash entry screen"
 **Interfaces:**
 - Consumes: `useTransaction`, `useCategories`, `useUpdateTransaction`, `useDeleteTransaction` (Task 8), `renderWithQueryClient` (Task 5).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `apps/mobile/app/transaction/__tests__/[id].test.tsx`:
 
@@ -1741,12 +1741,12 @@ test("confirming delete calls deleteTransaction with the transaction id", async 
 });
 ```
 
-- [ ] **Step 2: Run it to see it fail**
+- [x] **Step 2: Run it to see it fail**
 
 Run: `corepack pnpm --filter @huella/mobile test app/transaction/__tests__`
 Expected: FAIL (the current placeholder has no form or delete flow).
 
-- [ ] **Step 3: Replace `apps/mobile/app/transaction/[id].tsx`**
+- [x] **Step 3: Replace `apps/mobile/app/transaction/[id].tsx`**
 
 ```tsx
 import { useEffect, useState } from "react";
@@ -1881,12 +1881,12 @@ export default function TransactionDetailScreen() {
 }
 ```
 
-- [ ] **Step 4: Run the tests again**
+- [x] **Step 4: Run the tests again**
 
 Run: `corepack pnpm --filter @huella/mobile test app/transaction/__tests__`
 Expected: PASS, 2 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/mobile/app
@@ -1899,17 +1899,17 @@ git commit -m "feat(mobile): transaction detail/edit screen with delete confirma
 
 **Files:** none (verification only).
 
-- [ ] **Step 1: Run the full test suite**
+- [x] **Step 1: Run the full test suite**
 
 Run: `corepack pnpm --filter @huella/mobile test`
 Expected: every test file from Tasks 2–12 passes.
 
-- [ ] **Step 2: Full typecheck**
+- [x] **Step 2: Full typecheck**
 
 Run: `corepack pnpm --filter @huella/mobile run typecheck`
 Expected: no errors.
 
-- [ ] **Step 3: Manual smoke check against the real API**
+- [x] **Step 3: Manual smoke check against the real API**
 
 This step is not a subagent task — do it yourself in the main session, the same way Phases 4–5 were verified against the real backend:
 
