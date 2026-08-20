@@ -16,7 +16,10 @@ export async function renderWithQueryClient(ui: ReactElement) {
   return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 }
 
-export function renderHookWithQueryClient<TResult, TProps>(
+// @testing-library/react-native's renderHook() is async in the installed
+// version too (same act()-wrapping as render()) — this wrapper stays async,
+// and every call site must `await renderHookWithQueryClient(...)`.
+export async function renderHookWithQueryClient<TResult, TProps>(
   callback: (props: TProps) => TResult,
 ) {
   const queryClient = createTestQueryClient();
