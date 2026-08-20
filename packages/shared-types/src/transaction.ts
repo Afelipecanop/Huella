@@ -19,8 +19,10 @@ export const transactionSchema = z.object({
   updated_at: timestampSchema,
 });
 
-// Payload genérico (ej. el webhook del email-worker tras un parseo exitoso).
-// source y status los asigna el backend según el flujo de creación, no el cliente.
+// Payload genérico de creación de transacción (uso interno de la API).
+// source y status los asigna el backend según el flujo de creación, no el
+// cliente. apps/email-worker no usa este schema: escribe directo contra
+// Prisma, sin pasar por la API.
 export const createTransactionSchema = transactionSchema.omit({
   id: true,
   user_id: true,

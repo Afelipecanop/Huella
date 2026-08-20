@@ -28,9 +28,14 @@ Dos piezas del repo ya insinuaban el diseño antes de esta fase:
   Prisma Client (vía Cloudflare Hyperdrive) y escribe `IngestionEvent`/
   `Transaction` directo. Se evita un salto de red extra por correo
   procesado; a cambio, la lógica de negocio (decidir si se crea la
-  transacción) vive en el worker, no en `apps/api`. El comentario
-  desactualizado en `ingestion-events.ts` se corrige como parte de esta
-  fase.
+  transacción) vive en el worker, no en `apps/api`. Dos comentarios
+  desactualizados que describían el diseño de webhook descartado se
+  corrigen como parte de esta fase: `apps/api/src/routes/ingestion-events.ts`
+  ("via el webhook del email-worker") y
+  `packages/shared-types/src/transaction.ts`, en `createTransactionSchema`
+  ("ej. el webhook del email-worker tras un parseo exitoso") — el worker no
+  usa ese schema, construye el registro de `Transaction` directo contra
+  Prisma.
 - **`packages/db` — Prisma como paquete compartido.** `schema.prisma` se
   muda de `apps/api/prisma/` a `packages/db/prisma/`, junto con las
   migraciones existentes y `seed.ts`. `packages/db` exporta el
@@ -67,6 +72,17 @@ Dos piezas del repo ya insinuaban el diseño antes de esta fase:
 - **Moneda: fallback a la cuenta.** `extractFields` puede no capturar
   `currency` (varias plantillas no la necesitan si el banco solo opera en
   una moneda). La `Transaction` usa `extracted.currency ?? account.currency`.
+- **Signo del monto: siempre negativo (gasto).** `amountSchema` en
+  `@huella/shared-types` documenta que el signo de `Transaction.amount`
+  indica dirección (negativo = egreso, positivo = ingreso), y el spec de
+  Fase 4 dejó explícito que decidir ese signo es responsabilidad de
+  `apps/email-worker` — `extractFields` solo da una magnitud sin signo. La
+  única plantilla que existe hoy (Bancolombia) es de notificaciones de
+  "Compra", siempre gasto, así que el worker guarda
+  `amount: -extracted.amount`. Es una heurística válida solo mientras
+  todas las plantillas sean de gasto; una plantilla futura que notifique
+  ingresos (consignación, abono) necesita una heurística real
+  (palabra clave u otro campo de `extraction_rules`) — fuera de esta fase.
 - **Alcance: código + tests locales, no despliegue.** No se compra dominio
   ni se configura Cloudflare Email Routing en producción en esta fase —
   igual que bank-templates y mobile no se desplegaron en las suyas. Eso es
@@ -147,7 +163,7 @@ email() handler (Cloudflare Email Routing)
   │                 │
   │                 └─ 1 cuenta ──► crear Transaction{
   │                                     source: "email", status: "pending",
-  │                                     amount, date, merchant,
+  │                                     amount: -extracted.amount, date, merchant,
   │                                     currency: extracted.currency ?? account.currency,
   │                                     accountId, categoryId: null,
   │                                   }
@@ -233,7 +249,8 @@ es aditivo y no le cambia el comportamiento.
   `PATCH /accounts/:id`, que ya acepta cualquier campo de
   `updateAccountSchema`). Una pantalla dedicada en `apps/mobile` queda
   para una fase futura si se decide necesaria.
-- No se resuelve la heurística de débito/crédito (signo del monto) más
-  allá de lo que ya decidió Fase 4: `extractFields` no la aplica, y esta
-  fase tampoco — todo lo que llega vía `bank-templates` hoy son compras
-  (gasto), consistente con la única plantilla que existe.
+- No se resuelve una heurística *general* de débito/crédito (por palabras
+  clave u otras señales) — solo se aplica la regla trivial "toda plantilla
+  actual es de gasto, monto negativo" (ver Decisiones). Una heurística real
+  que distinga ingresos queda para cuando exista una plantilla que los
+  notifique.
