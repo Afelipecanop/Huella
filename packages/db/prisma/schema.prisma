@@ -3,9 +3,10 @@ generator client {
 }
 
 generator workerd {
-  provider = "prisma-client"
-  runtime  = "workerd"
-  output   = "../src/generated/workerd"
+  provider   = "prisma-client"
+  runtime    = "workerd"
+  engineType = "client"
+  output     = "../src/generated/workerd"
 }
 
 datasource db {
