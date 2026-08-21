@@ -64,6 +64,16 @@ const TEST_DATABASE_URL =
 process.env.CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE ??= TEST_DATABASE_URL;
 
 export default defineConfig({
+  test: {
+    // Every test file shares one real Postgres instance via createTestPrisma()
+    // (there's no per-file DB isolation like Miniflare gives KV/D1 bindings).
+    // BankTemplate rows in particular are read globally (matchTemplate scans
+    // every row, not just ones scoped to the current test's userId), so a
+    // deliberately-malformed row one file inserts (index.test.ts's
+    // error-boundary test) can be visible to another file's query while
+    // running concurrently. Serializing file execution removes that race.
+    fileParallelism: false,
+  },
   plugins: [
     cloudflareTest({
       wrangler: { configPath: "./wrangler.jsonc" },
