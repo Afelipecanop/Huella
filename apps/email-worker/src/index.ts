@@ -5,6 +5,7 @@ import type { Env } from "./env";
 import { resolveUser } from "./resolveUser";
 import { parseEmail } from "./parseEmail";
 import { processEmail } from "./processEmail";
+import { persistIngestion } from "./persist";
 
 export default {
   async email(message: ForwardableEmailMessage, env: Env, ctx: ExecutionContext): Promise<void> {
@@ -17,7 +18,20 @@ export default {
       if (!userId) return;
 
       const { from, text } = await parseEmail(message.raw);
-      await processEmail(prisma, { userId, from, text });
+
+      try {
+        await processEmail(prisma, { userId, from, text });
+      } catch {
+        // A malformed BankTemplate row (bad regex, non-array extraction_rules)
+        // or any other unexpected failure must never lose the email — persist
+        // the same fallback shape processEmail's own failure branches use.
+        await persistIngestion(prisma, {
+          userId,
+          templateId: null,
+          rawContent: text,
+          transaction: null,
+        }).catch(() => {});
+      }
     } finally {
       await prisma.$disconnect();
     }

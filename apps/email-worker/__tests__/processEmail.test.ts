@@ -111,4 +111,50 @@ describe("processEmail", () => {
     const transactions = await prisma.transaction.findMany({ where: { userId } });
     expect(transactions).toHaveLength(0);
   });
+
+  it("falls back to the account's currency when the extracted currency isn't a valid 3-letter code", async () => {
+    const account = await prisma.account.create({
+      data: { userId, name: "Cuenta test", type: "bank", currency: "COP", bankTemplateId: templateId },
+    });
+
+    await prisma.bankTemplate.update({
+      where: { id: templateId },
+      data: {
+        extractionRules: [
+          ...TEST_BANK_RULES,
+          { field: "currency", pattern: "moneda: (.+)", group: 1 },
+        ],
+      },
+    });
+
+    await processEmail(prisma, {
+      userId,
+      from: senderAddress,
+      text: `${testEmailBody()} moneda: pesos colombianos`,
+    });
+
+    const transactions = await prisma.transaction.findMany({ where: { userId } });
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]).toMatchObject({ currency: "COP", accountId: account.id });
+  });
+
+  it("persists an unparsed IngestionEvent instead of overflowing Postgres's 32-bit amount column", async () => {
+    await prisma.account.create({
+      data: { userId, name: "Cuenta test", type: "bank", currency: "COP", bankTemplateId: templateId },
+    });
+
+    // 30,000,000.00 COP -> 3,000,000,000 cents, past Postgres's int32 max (2,147,483,647).
+    await processEmail(prisma, {
+      userId,
+      from: senderAddress,
+      text: "monto: 30.000.000,00 fecha: 05/01/2026 a las 09:00 comercio: TIENDA X",
+    });
+
+    const transactions = await prisma.transaction.findMany({ where: { userId } });
+    expect(transactions).toHaveLength(0);
+
+    const events = await prisma.ingestionEvent.findMany({ where: { userId } });
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ parsedOk: false, templateId, transactionId: null });
+  });
 });

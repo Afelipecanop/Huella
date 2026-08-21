@@ -58,10 +58,10 @@ Si el parseo automático de un correo falla, el dato nunca se pierde: queda como
 | API (`apps/api` — Fastify + Prisma + PostgreSQL) | ✅ Listo — CRUD de cuentas, categorías, transacciones y plantillas de banco |
 | App móvil (`apps/mobile` — Expo + Expo Router) | ✅ Listo — loop principal: lista, entrada manual, detalle/edición |
 | Motor de parseo de bancos (`@huella/bank-templates`) | ✅ Listo — plantilla de Bancolombia validada de punta a punta |
-| Captura automática por correo (`apps/email-worker`) |  En diseño |
+| Captura automática por correo (`apps/email-worker`) | ✅ Implementado — 19/19 tests pasando; pendiente revisión final de rama y merge a `master` |
 | Autenticación real (JWT/sesiones) |  Pendiente — hoy usa un placeholder (`x-user-id`) |
 | CI + documentación de arquitectura |  Pendiente |
-| Tests automatizados en `apps/api` |  Pendiente — hoy solo `apps/mobile` y `packages/bank-templates` tienen suite |
+| Tests automatizados en `apps/api` |  Pendiente — hoy solo `apps/mobile`, `packages/bank-templates` y `apps/email-worker` tienen suite |
 
 ## 🏗️ Arquitectura
 
@@ -137,7 +137,10 @@ flowchart LR
 - **Fase 1-3 — Base del monorepo, tipos y API.** pnpm workspaces, `@huella/shared-types` (esquemas Zod de Users, Accounts, Categories, Transactions, IngestionEvents y BankTemplates), y `apps/api` con Fastify + Prisma: rutas CRUD completas, auth placeholder vía header `x-user-id`, `docker-compose.yml` para Postgres local.
 - **Fase 6 — App móvil.** `apps/mobile` con Expo Router: Home (lista + pull-to-refresh + skeleton), entrada manual de efectivo, detalle/edición con borrado confirmado por modal (no `Alert` nativo), NativeWind con modo claro/oscuro automático. Se detectó y corrigió una serie de tests con timeout flakeado por contención de CPU en corridas en frío (no un bug de la app) subiendo el timeout global de Jest.
 - **Fase 4 — Motor de parseo de bancos.** `packages/bank-templates`: `matchTemplate`/`extractFields` (motor genérico basado en regex), la plantilla de Bancolombia y un fixture de correo realista que valida el patrón de punta a punta. Una revisión final encontró y corrigió un bug real: el regex de comercio no estaba anclado y capturaba texto incorrecto en frases realistas tipo "Compra en línea por $X en TIENDA el...".
-- **Fase 5 — Captura por correo (diseño cerrado, implementación pendiente).** `apps/email-worker`: Cloudflare Email Worker que identifica al usuario por el destinatario del correo (`<user_id>@ingest.huella.app`), parsea el MIME con `postal-mime`, usa `@huella/bank-templates` para extraer los campos, y escribe directo a Postgres vía Prisma + Cloudflare Hyperdrive (no a través de la API). `Account` va a sumar un campo `bank_template_id` opcional para resolver a qué cuenta pertenece cada transacción parseada, y el schema de Prisma se muda a un paquete nuevo (`packages/db`) compartido entre `apps/api` y `apps/email-worker`. El diseño quedó documentado en [`docs/superpowers/specs/2026-08-20-email-worker-design.md`](docs/superpowers/specs/2026-08-20-email-worker-design.md); una revisión encontró y corrigió una laguna real: decidir el signo del monto (gasto vs. ingreso) es responsabilidad de esta fase, no de `bank-templates` — como hoy la única plantilla es de compras, el worker guarda el monto siempre en negativo.
+- **Fase 5 — Captura por correo (implementada).** `apps/email-worker`: Cloudflare Email Worker que identifica al usuario por el destinatario del correo (`<user_id>@ingest.huella.app`), parsea el MIME con `postal-mime`, usa `@huella/bank-templates` para extraer los campos, y escribe directo a Postgres vía Prisma + Cloudflare Hyperdrive (no a través de la API). `Account` sumó el campo opcional `bank_template_id` para resolver a qué cuenta pertenece cada transacción parseada, y el schema de Prisma se mudó a un paquete nuevo (`packages/db`) compartido entre `apps/api` y `apps/email-worker`. El diseño está documentado en [`docs/superpowers/specs/2026-08-20-email-worker-design.md`](docs/superpowers/specs/2026-08-20-email-worker-design.md); una revisión de diseño encontró y corrigió una laguna real: decidir el signo del monto (gasto vs. ingreso) es responsabilidad de esta fase, no de `bank-templates` — como hoy la única plantilla es de compras, el worker guarda el monto siempre en negativo.
+  - **Nota técnica (compatibilidad con Cloudflare Workers).** Cloudflare Workers no puede ejecutar el motor de queries binario clásico de Prisma. Se resolvió agregando un segundo generador de Prisma en `packages/db` (export `@huella/db/workerd`, motor sin Rust vía `engineType = "client"`), sin tocar el export clásico (`@huella/db`) que sigue usando `apps/api` sin cambios. Además, una incompatibilidad separada y ya conocida de `@cloudflare/vitest-pool-workers` con módulos wasm cargados solo desde el grafo de imports de un test (no desde el entrypoint real del Worker) obligó a subir esa dependencia de test a su major más reciente (vitest 3→4).
+  - **Nota técnica (manejo de errores).** El handler `email()` nunca deja que una excepción se escape: si `processEmail` falla (p. ej. una plantilla de banco con un regex mal formado), se captura y se persiste igual un `IngestionEvent` fallido — así una sola fila corrupta en `BankTemplate` no puede tumbar la ingesta de correos de nadie. Los escritos de `Transaction` + `IngestionEvent` en el caso exitoso van dentro de una transacción de Prisma (`$transaction`), y el monto/moneda extraídos se validan antes de escribir (rango de `Int` de Postgres, formato ISO de 3 letras) en vez de dejar que la escritura falle.
+  - Implementación ejecutada con `superpowers:subagent-driven-development` en un worktree aislado; historial completo de decisiones en `.claude/worktrees/email-worker/.superpowers/sdd/2026-08-20-email-worker/progress.md`.
 
 ##  Modelo de datos (núcleo)
 
@@ -168,11 +171,12 @@ flowchart LR
 huella/
 ├── apps/
 │   ├── mobile/           # Expo + Expo Router (TypeScript)
-│   ├── api/               # Fastify + Prisma
-│   └── email-worker/       # Cloudflare Email Worker
+│   ├── api/               # Fastify (consume @huella/db)
+│   └── email-worker/       # Cloudflare Email Worker (consume @huella/db/workerd)
 ├── packages/
 │   ├── shared-types/       # esquemas Zod, usados por los tres apps
-│   └── bank-templates/      # motor de parseo + plantillas por banco
+│   ├── bank-templates/      # motor de parseo + plantillas por banco
+│   └── db/                  # schema.prisma + migraciones, compartido entre api y email-worker
 ├── docs/                    # specs y planes de cada fase
 └── .github/workflows/       # CI (pendiente)
 ```
@@ -189,14 +193,15 @@ pnpm install
 # 3. Levantar Postgres local
 pnpm db:up
 
-# 4. Configurar variables de entorno de apps/api
+# 4. Configurar variables de entorno (el schema/migraciones de Prisma viven en packages/db)
 cp apps/api/.env.example apps/api/.env
+cp packages/db/.env.example packages/db/.env
 
 # 5. Aplicar migraciones
-pnpm --filter @huella/api exec prisma migrate dev
+pnpm --filter @huella/db exec prisma migrate dev
 
 # 6. (Opcional) sembrar plantillas de banco
-pnpm --filter @huella/api run db:seed
+pnpm --filter @huella/db run db:seed
 
 # 7. Levantar la API
 pnpm --filter @huella/api dev
@@ -204,6 +209,10 @@ pnpm --filter @huella/api dev
 # 8. Configurar y levantar la app móvil
 cp apps/mobile/.env.example apps/mobile/.env
 pnpm --filter @huella/mobile start
+
+# 9. (Opcional) correr el email-worker localmente
+cp apps/email-worker/.env.example apps/email-worker/.env
+pnpm --filter @huella/email-worker dev
 ```
 
 ##  Cómo correr los tests
@@ -214,6 +223,9 @@ pnpm --filter @huella/mobile test
 
 # Motor de parseo de bancos (Vitest)
 pnpm --filter @huella/bank-templates test
+
+# Email worker (Vitest + Miniflare, requiere Postgres local levantado)
+pnpm --filter @huella/email-worker test
 
 # Typecheck de cualquier paquete/app
 pnpm --filter <paquete> run typecheck
@@ -227,6 +239,8 @@ pnpm --filter <paquete> run typecheck
 |---|---|---|
 | `DATABASE_URL` | `apps/api/.env` | Cadena de conexión a PostgreSQL |
 | `PORT` | `apps/api/.env` | Puerto de la API (default `3000`) |
+| `DATABASE_URL` | `packages/db/.env` | Cadena de conexión a PostgreSQL, usada por `prisma migrate`/`db:seed` |
+| `TEST_DATABASE_URL` | `apps/email-worker/.env` | Postgres que usan los tests del worker (Miniflare emula el binding `HYPERDRIVE` con este valor) |
 | `EXPO_PUBLIC_API_URL` | `apps/mobile/.env` | URL base de la API que consume la app móvil |
 | `EXPO_PUBLIC_DEV_USER_ID` | `apps/mobile/.env` | ID de usuario de desarrollo (reemplaza al placeholder de auth) |
 
@@ -238,10 +252,12 @@ Todavía no desplegado — desarrollo 100% local. La infraestructura pensada par
 
 ##  Próximos pasos
 
-- Terminar el diseño e implementación de `apps/email-worker` (Fase 5)
-- CI básico con GitHub Actions + `docs/architecture.md` y `docs/data-model.md` (Fase 7)
+- Revisión final de la rama de `apps/email-worker` y merge a `master` (cierre de Fase 5)
+- CI básico con GitHub Actions + `docs/architecture.md` y `docs/data-model.md` (Fase 7 — última fase del plan original)
 - Autenticación real (reemplazar el placeholder `x-user-id`)
 - Suite de tests para `apps/api`
+- Deploy real de `apps/email-worker` (recurso real de Cloudflare Hyperdrive, hoy con placeholder) y correr `wrangler deploy --dry-run` para validar el bundling real de wasm antes de desplegar — fuera de alcance de las 7 fases originales
+- Mecanismo de idempotencia para correos reenviados/reintentados (evitar `Transaction` duplicada si Cloudflare reintenta el handler)
 
 ---
 

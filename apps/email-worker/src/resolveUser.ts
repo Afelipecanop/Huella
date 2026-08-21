@@ -7,7 +7,10 @@ export async function resolveUser(to: string, prisma: PrismaClient): Promise<str
   const match = RECIPIENT_PATTERN.exec(to);
   if (!match) return null;
 
-  const candidateId = match[1];
+  // The domain match is case-insensitive (/i), but a cuid2 id is always
+  // lowercase — without this, a differently-cased local part would be
+  // silently discarded here instead of resolving to a real user.
+  const candidateId = match[1].toLowerCase();
   if (!idSchema.safeParse(candidateId).success) return null;
 
   const user = await prisma.user.findUnique({ where: { id: candidateId } });

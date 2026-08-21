@@ -11,6 +11,9 @@ type BankTemplateRow = {
   extractionRules: unknown;
 };
 
+// Postgres `integer` range — Transaction.amount is stored in minor units (cents).
+const POSTGRES_INT32_MAX = 2147483647;
+
 function toCreateBankTemplate(row: BankTemplateRow): CreateBankTemplate {
   return {
     bank_name: row.bankName,
@@ -66,6 +69,26 @@ export async function processEmail(
   }
 
   const account = accounts[0];
+  const amount = -fields.amount;
+
+  // A value this large can't be a real bank-notification amount for a single
+  // purchase — treat it the same as any other extraction failure rather than
+  // letting the DB write throw (Transaction.amount is a 32-bit Postgres `integer`).
+  if (Math.abs(amount) > POSTGRES_INT32_MAX) {
+    await persistIngestion(prisma, {
+      userId: params.userId,
+      templateId: templateRow.id,
+      rawContent: params.text,
+      transaction: null,
+    });
+    return;
+  }
+
+  // extractFields doesn't validate currency format; guard before writing so
+  // a malformed capture can't poison Transaction.currency (@db.Char(3)) and
+  // break every later read of this user's transaction list.
+  const currency =
+    fields.currency && /^[A-Z]{3}$/.test(fields.currency) ? fields.currency : account.currency;
 
   await persistIngestion(prisma, {
     userId: params.userId,
@@ -73,9 +96,9 @@ export async function processEmail(
     rawContent: params.text,
     transaction: {
       accountId: account.id,
-      amount: -fields.amount,
+      amount,
       date: fields.date,
-      currency: fields.currency ?? account.currency,
+      currency,
       ...(fields.merchant !== undefined && { merchant: fields.merchant }),
     },
   });
