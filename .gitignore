@@ -27,6 +27,7 @@ apps/mobile/web-build/
 # Prisma
 apps/api/prisma/*.db
 apps/api/prisma/migrations/dev/
+packages/db/src/generated/
 
 # Cloudflare Workers
 .wrangler/
