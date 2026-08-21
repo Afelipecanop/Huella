@@ -5,7 +5,7 @@ import type {
   Transaction as PrismaTransaction,
   IngestionEvent as PrismaIngestionEvent,
   BankTemplate as PrismaBankTemplate,
-} from "@prisma/client";
+} from "@huella/db";
 import {
   userSchema,
   accountSchema,

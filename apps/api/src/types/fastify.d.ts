@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@huella/db";
 
 declare module "fastify" {
   interface FastifyInstance {

@@ -1,5 +1,5 @@
 import fp from "fastify-plugin";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@huella/db";
 import type { FastifyInstance } from "fastify";
 
 export default fp(async function prismaPlugin(fastify: FastifyInstance) {
