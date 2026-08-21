@@ -1,8 +1,9 @@
 import type { FastifyPluginAsync } from "fastify";
 import { serializeIngestionEvent } from "../serializers.js";
 
-// Solo lectura: la creación (via el webhook del email-worker) y el enlace a
-// transaction_id se resuelven en la fase de apps/email-worker, no acá.
+// Solo lectura: apps/email-worker crea estos registros escribiendo directo
+// contra Postgres (no vía esta API) — ver
+// docs/superpowers/specs/2026-08-20-email-worker-design.md.
 const ingestionEventRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/", async (request) => {
     const events = await fastify.prisma.ingestionEvent.findMany({

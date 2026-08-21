@@ -45,18 +45,21 @@ model User {
 }
 
 model Account {
-  id        String      @id @default(cuid(2))
-  userId    String      @map("user_id")
-  name      String
-  type      AccountType
-  currency  String      @db.Char(3)
-  createdAt DateTime    @default(now()) @map("created_at")
-  updatedAt DateTime    @updatedAt @map("updated_at")
+  id             String      @id @default(cuid(2))
+  userId         String      @map("user_id")
+  name           String
+  type           AccountType
+  currency       String      @db.Char(3)
+  bankTemplateId String?     @map("bank_template_id")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankTemplate BankTemplate? @relation(fields: [bankTemplateId], references: [id], onDelete: SetNull)
   transactions Transaction[]
 
   @@index([userId])
+  @@index([bankTemplateId])
   @@map("accounts")
 }
 
@@ -138,6 +141,7 @@ model BankTemplate {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   ingestionEvents IngestionEvent[]
+  accounts        Account[]
 
   @@map("bank_templates")
 }

@@ -37,6 +37,7 @@ export function serializeAccount(a: PrismaAccount) {
     name: a.name,
     type: a.type,
     currency: a.currency,
+    bank_template_id: a.bankTemplateId,
     created_at: a.createdAt.toISOString(),
     updated_at: a.updatedAt.toISOString(),
   });

@@ -9,18 +9,25 @@ export const accountSchema = z.object({
   name: z.string().min(1),
   type: accountTypeSchema,
   currency: currencySchema,
+  bank_template_id: idSchema.nullable(),
   created_at: timestampSchema,
   updated_at: timestampSchema,
 });
 
 // user_id no viaja en el payload: lo determina el backend a partir de la
 // identidad autenticada (header x-user-id por ahora, JWT más adelante).
-export const createAccountSchema = accountSchema.omit({
-  id: true,
-  user_id: true,
-  created_at: true,
-  updated_at: true,
-});
+// bank_template_id es opcional en creación/actualización: por default una
+// cuenta no está vinculada a ninguna plantilla de banco.
+export const createAccountSchema = accountSchema
+  .omit({
+    id: true,
+    user_id: true,
+    created_at: true,
+    updated_at: true,
+  })
+  .extend({
+    bank_template_id: idSchema.nullable().optional(),
+  });
 
 export const updateAccountSchema = createAccountSchema.partial();
 
