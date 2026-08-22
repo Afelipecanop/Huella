@@ -77,7 +77,7 @@ flowchart LR
         CRUD["Accounts · Categories ·\nTransactions · BankTemplates"]
     end
 
-    subgraph Ingesta["📧 Captura por correo — apps/email-worker"]
+    subgraph Ingesta[" Captura por correo — apps/email-worker"]
         CFER["Cloudflare\nEmail Routing"]
         WORKER["Email Worker\nMIME parsing (postal-mime)"]
     end
