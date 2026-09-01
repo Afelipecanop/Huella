@@ -58,7 +58,7 @@ Si el parseo automático de un correo falla, el dato nunca se pierde: queda como
 | API (`apps/api` — Fastify + Prisma + PostgreSQL) | ✅ Listo — CRUD de cuentas, categorías, transacciones y plantillas de banco |
 | App móvil (`apps/mobile` — Expo + Expo Router) | ✅ Listo — loop principal: lista, entrada manual, detalle/edición |
 | Motor de parseo de bancos (`@huella/bank-templates`) | ✅ Listo — plantilla de Bancolombia validada de punta a punta |
-| Captura automática por correo (`apps/email-worker`) | ✅ Implementado — 19/19 tests pasando; pendiente revisión final de rama y merge a `master` |
+| Captura automática por correo (`apps/email-worker`) | ✅ Listo — 19/19 tests pasando, mergeado a `master` |
 | Autenticación real (JWT/sesiones) |  Pendiente — hoy usa un placeholder (`x-user-id`) |
 | CI + documentación de arquitectura |  Pendiente |
 | Tests automatizados en `apps/api` |  Pendiente — hoy solo `apps/mobile`, `packages/bank-templates` y `apps/email-worker` tienen suite |
@@ -140,7 +140,7 @@ flowchart LR
 - **Fase 5 — Captura por correo (implementada).** `apps/email-worker`: Cloudflare Email Worker que identifica al usuario por el destinatario del correo (`<user_id>@ingest.huella.app`), parsea el MIME con `postal-mime`, usa `@huella/bank-templates` para extraer los campos, y escribe directo a Postgres vía Prisma + Cloudflare Hyperdrive (no a través de la API). `Account` sumó el campo opcional `bank_template_id` para resolver a qué cuenta pertenece cada transacción parseada, y el schema de Prisma se mudó a un paquete nuevo (`packages/db`) compartido entre `apps/api` y `apps/email-worker`. El diseño está documentado en [`docs/superpowers/specs/2026-08-20-email-worker-design.md`](docs/superpowers/specs/2026-08-20-email-worker-design.md); una revisión de diseño encontró y corrigió una laguna real: decidir el signo del monto (gasto vs. ingreso) es responsabilidad de esta fase, no de `bank-templates` — como hoy la única plantilla es de compras, el worker guarda el monto siempre en negativo.
   - **Nota técnica (compatibilidad con Cloudflare Workers).** Cloudflare Workers no puede ejecutar el motor de queries binario clásico de Prisma. Se resolvió agregando un segundo generador de Prisma en `packages/db` (export `@huella/db/workerd`, motor sin Rust vía `engineType = "client"`), sin tocar el export clásico (`@huella/db`) que sigue usando `apps/api` sin cambios. Además, una incompatibilidad separada y ya conocida de `@cloudflare/vitest-pool-workers` con módulos wasm cargados solo desde el grafo de imports de un test (no desde el entrypoint real del Worker) obligó a subir esa dependencia de test a su major más reciente (vitest 3→4).
   - **Nota técnica (manejo de errores).** El handler `email()` nunca deja que una excepción se escape: si `processEmail` falla (p. ej. una plantilla de banco con un regex mal formado), se captura y se persiste igual un `IngestionEvent` fallido — así una sola fila corrupta en `BankTemplate` no puede tumbar la ingesta de correos de nadie. Los escritos de `Transaction` + `IngestionEvent` en el caso exitoso van dentro de una transacción de Prisma (`$transaction`), y el monto/moneda extraídos se validan antes de escribir (rango de `Int` de Postgres, formato ISO de 3 letras) en vez de dejar que la escritura falle.
-  - Implementación ejecutada con `superpowers:subagent-driven-development` en un worktree aislado; historial completo de decisiones en `.claude/worktrees/email-worker/.superpowers/sdd/2026-08-20-email-worker/progress.md`.
+  - Implementación ejecutada con `superpowers:subagent-driven-development` en un worktree aislado, con una revisión final de rama que encontró y corrigió 7 problemas reales antes del merge (el más importante: `email()` no tenía manejo de errores, así que una sola plantilla de banco corrupta podía tumbar la ingesta de correos de todos los usuarios) y una condición de carrera real entre archivos de test que compartían la misma base de datos, detectada después del merge y corregida serializando la suite (`fileParallelism: false`).
 
 ##  Modelo de datos (núcleo)
 
@@ -182,6 +182,8 @@ huella/
 ```
 
 ##  Instalación rápida
+
+> Requiere Node ≥22.
 
 ```bash
 # 1. Habilitar pnpm
@@ -252,7 +254,6 @@ Todavía no desplegado — desarrollo 100% local. La infraestructura pensada par
 
 ##  Próximos pasos
 
-- Revisión final de la rama de `apps/email-worker` y merge a `master` (cierre de Fase 5)
 - CI básico con GitHub Actions + `docs/architecture.md` y `docs/data-model.md` (Fase 7 — última fase del plan original)
 - Autenticación real (reemplazar el placeholder `x-user-id`)
 - Suite de tests para `apps/api`
