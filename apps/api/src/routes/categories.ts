@@ -46,7 +46,12 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
     if (!(await assertParentOwnedByUser(data.parent_id, request.userId, reply))) return reply;
 
     const category = await fastify.prisma.category.create({
-      data: { ...data, userId: request.userId },
+      data: {
+        userId: request.userId,
+        name: data.name,
+        type: data.type,
+        parentId: data.parent_id,
+      },
     });
     reply.code(201);
     return serializeCategory(category);
@@ -72,7 +77,11 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
 
     const category = await fastify.prisma.category.update({
       where: { id: existing.id },
-      data,
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.type !== undefined && { type: data.type }),
+        ...(data.parent_id !== undefined && { parentId: data.parent_id }),
+      },
     });
     return serializeCategory(category);
   });

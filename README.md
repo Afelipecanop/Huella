@@ -59,9 +59,9 @@ Si el parseo automático de un correo falla, el dato nunca se pierde: queda como
 | App móvil (`apps/mobile` — Expo + Expo Router) | ✅ Listo — loop principal: lista, entrada manual, detalle/edición |
 | Motor de parseo de bancos (`@huella/bank-templates`) | ✅ Listo — plantilla de Bancolombia validada de punta a punta |
 | Captura automática por correo (`apps/email-worker`) | ✅ Listo — 19/19 tests pasando, mergeado a `master` |
-| Autenticación real (JWT/sesiones) |  Pendiente — hoy usa un placeholder (`x-user-id`) |
+| Autenticación real (email + password) | ✅ Listo — argon2, JWT de acceso + refresh token rotable, reemplaza el placeholder `x-user-id` |
+| Tests automatizados en `apps/api` | ✅ Listo — 45/45 tests (auth, accounts, categories, transactions, ingestion-events, bank-templates, users) |
 | CI + documentación de arquitectura |  Pendiente |
-| Tests automatizados en `apps/api` |  Pendiente — hoy solo `apps/mobile`, `packages/bank-templates` y `apps/email-worker` tienen suite |
 
 ## 🏗️ Arquitectura
 
@@ -73,7 +73,7 @@ flowchart LR
 
     subgraph Servidor["⚙️ Backend — apps/api (Fastify)"]
         API["API REST"]
-        AUTH["Auth · placeholder x-user-id"]
+        AUTH["Auth · email + password\nJWT + refresh token"]
         CRUD["Accounts · Categories ·\nTransactions · BankTemplates"]
     end
 
@@ -86,7 +86,7 @@ flowchart LR
     BT["📦 @huella/bank-templates\nmatchTemplate · extractFields"]
     ST["📦 @huella/shared-types\nesquemas Zod"]
 
-    MOBILE -->|"HTTPS / JSON\nx-user-id"| API
+    MOBILE -->|"HTTPS / JSON\nAuthorization: Bearer"| API
     API --> AUTH & CRUD
     CRUD --> DB
 
@@ -141,6 +141,7 @@ flowchart LR
   - **Nota técnica (compatibilidad con Cloudflare Workers).** Cloudflare Workers no puede ejecutar el motor de queries binario clásico de Prisma. Se resolvió agregando un segundo generador de Prisma en `packages/db` (export `@huella/db/workerd`, motor sin Rust vía `engineType = "client"`), sin tocar el export clásico (`@huella/db`) que sigue usando `apps/api` sin cambios. Además, una incompatibilidad separada y ya conocida de `@cloudflare/vitest-pool-workers` con módulos wasm cargados solo desde el grafo de imports de un test (no desde el entrypoint real del Worker) obligó a subir esa dependencia de test a su major más reciente (vitest 3→4).
   - **Nota técnica (manejo de errores).** El handler `email()` nunca deja que una excepción se escape: si `processEmail` falla (p. ej. una plantilla de banco con un regex mal formado), se captura y se persiste igual un `IngestionEvent` fallido — así una sola fila corrupta en `BankTemplate` no puede tumbar la ingesta de correos de nadie. Los escritos de `Transaction` + `IngestionEvent` en el caso exitoso van dentro de una transacción de Prisma (`$transaction`), y el monto/moneda extraídos se validan antes de escribir (rango de `Int` de Postgres, formato ISO de 3 letras) en vez de dejar que la escritura falle.
   - Implementación ejecutada con `superpowers:subagent-driven-development` en un worktree aislado, con una revisión final de rama que encontró y corrigió 7 problemas reales antes del merge (el más importante: `email()` no tenía manejo de errores, así que una sola plantilla de banco corrupta podía tumbar la ingesta de correos de todos los usuarios) y una condición de carrera real entre archivos de test que compartían la misma base de datos, detectada después del merge y corregida serializando la suite (`fileParallelism: false`).
+- **Autenticación real + primera suite de tests de `apps/api`.** Se reemplazó el placeholder `x-user-id` por login real: `POST /auth/register|login|refresh|logout`, contraseñas hasheadas con argon2, JWT de acceso de 15 min (`@fastify/jwt`) y refresh tokens opacos persistidos en Postgres con rotación en cada uso (tabla `refresh_tokens`). `apps/mobile` suma pantallas de login/registro gateadas con `Stack.Protected`, sesión en `expo-secure-store` y refresh-y-reintento automático ante un 401. De paso se escribió la primera suite de tests de `apps/api` (45 tests: auth, accounts, categories, transactions, ingestion-events, bank-templates, users), que destapó dos bugs reales preexistentes — `categories.ts` y el PATCH de `transactions.ts` mandaban campos en snake_case (`parent_id`, `account_id`, `category_id`) directo a Prisma, que espera camelCase, tirando 500 en cualquier POST a `/categories` — corregidos junto con la suite. También se encontró que `vitest` corría cada test dos veces porque `dist/` matcheaba el mismo glob que el código fuente.
 
 ##  Modelo de datos (núcleo)
 
@@ -162,7 +163,7 @@ flowchart LR
 | **Base de datos** | PostgreSQL |
 | **Captura de correos** | Cloudflare Email Routing + Email Workers, `postal-mime`, Cloudflare Hyperdrive |
 | **Validación compartida** | Zod (`@huella/shared-types`) |
-| **Testing** | Jest + Testing Library (`apps/mobile`), Vitest (`packages/bank-templates`) |
+| **Testing** | Jest + Testing Library (`apps/mobile`), Vitest (`packages/bank-templates`, `apps/api`, `apps/email-worker`) |
 | **Infraestructura local** | Docker Compose (PostgreSQL) |
 
 ## 📁 Estructura del proyecto
@@ -223,6 +224,9 @@ pnpm --filter @huella/email-worker dev
 # App móvil (Jest + Testing Library)
 pnpm --filter @huella/mobile test
 
+# API (Vitest + fastify.inject(), requiere Postgres local levantado)
+pnpm --filter @huella/api test
+
 # Motor de parseo de bancos (Vitest)
 pnpm --filter @huella/bank-templates test
 
@@ -233,18 +237,16 @@ pnpm --filter @huella/email-worker test
 pnpm --filter <paquete> run typecheck
 ```
 
-`apps/api` todavía no tiene suite de tests automatizados — es una brecha conocida, pendiente para una fase futura.
-
 ## 🔐 Variables de entorno
 
 | Variable | Dónde | Propósito |
 |---|---|---|
 | `DATABASE_URL` | `apps/api/.env` | Cadena de conexión a PostgreSQL |
 | `PORT` | `apps/api/.env` | Puerto de la API (default `3000`) |
+| `JWT_SECRET` | `apps/api/.env` | Secreto HMAC para firmar/verificar los JWT de acceso (`@fastify/jwt`, HS256). Requerida — el server no arranca sin ella. En producción debe ser un valor random de al menos 32 bytes, ej. `node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"` |
 | `DATABASE_URL` | `packages/db/.env` | Cadena de conexión a PostgreSQL, usada por `prisma migrate`/`db:seed` |
 | `TEST_DATABASE_URL` | `apps/email-worker/.env` | Postgres que usan los tests del worker (Miniflare emula el binding `HYPERDRIVE` con este valor) |
 | `EXPO_PUBLIC_API_URL` | `apps/mobile/.env` | URL base de la API que consume la app móvil |
-| `EXPO_PUBLIC_DEV_USER_ID` | `apps/mobile/.env` | ID de usuario de desarrollo (reemplaza al placeholder de auth) |
 
 > No se incluyen credenciales ni secretos en este repositorio.
 
@@ -255,8 +257,6 @@ Todavía no desplegado — desarrollo 100% local. La infraestructura pensada par
 ##  Próximos pasos
 
 - CI básico con GitHub Actions + `docs/architecture.md` y `docs/data-model.md` (Fase 7 — última fase del plan original)
-- Autenticación real (reemplazar el placeholder `x-user-id`)
-- Suite de tests para `apps/api`
 - Deploy real de `apps/email-worker` (recurso real de Cloudflare Hyperdrive, hoy con placeholder) y correr `wrangler deploy --dry-run` para validar el bundling real de wasm antes de desplegar — fuera de alcance de las 7 fases originales
 - Mecanismo de idempotencia para correos reenviados/reintentados (evitar `Transaction` duplicada si Cloudflare reintenta el handler)
 

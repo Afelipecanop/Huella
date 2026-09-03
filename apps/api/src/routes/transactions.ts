@@ -94,7 +94,15 @@ const transactionRoutes: FastifyPluginAsync = async (fastify) => {
 
     const transaction = await fastify.prisma.transaction.update({
       where: { id: existing.id },
-      data,
+      data: {
+        ...(data.account_id !== undefined && { accountId: data.account_id }),
+        ...(data.category_id !== undefined && { categoryId: data.category_id }),
+        ...(data.amount !== undefined && { amount: data.amount }),
+        ...(data.currency !== undefined && { currency: data.currency }),
+        ...(data.merchant !== undefined && { merchant: data.merchant }),
+        ...(data.date !== undefined && { date: data.date }),
+        ...(data.status !== undefined && { status: data.status }),
+      },
     });
     return serializeTransaction(transaction);
   });
