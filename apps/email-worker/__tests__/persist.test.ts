@@ -12,7 +12,12 @@ beforeEach(async () => {
   const suffix = `${Date.now()}${Math.floor(Math.random() * 1e6)}`;
 
   const user = await prisma.user.create({
-    data: { email: `persist-${suffix}@example.com`, name: "Test User", defaultCurrency: "COP" },
+    data: {
+      email: `persist-${suffix}@example.com`,
+      passwordHash: "unused",
+      name: "Test User",
+      defaultCurrency: "COP",
+    },
   });
   userId = user.id;
 

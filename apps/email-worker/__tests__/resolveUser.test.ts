@@ -9,6 +9,7 @@ beforeAll(async () => {
   const user = await prisma.user.create({
     data: {
       email: `resolve-user-${Date.now()}@example.com`,
+      passwordHash: "unused",
       name: "Test User",
       defaultCurrency: "COP",
     },

@@ -10,7 +10,12 @@ let userId: string;
 
 beforeEach(async () => {
   const user = await prisma.user.create({
-    data: { email: `wiring-${Date.now()}@example.com`, name: "Test User", defaultCurrency: "COP" },
+    data: {
+      email: `wiring-${Date.now()}@example.com`,
+      passwordHash: "unused",
+      name: "Test User",
+      defaultCurrency: "COP",
+    },
   });
   userId = user.id;
 

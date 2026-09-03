@@ -13,6 +13,7 @@ import {
   transactionSchema,
   ingestionEventSchema,
   bankTemplateSchema,
+  authTokensSchema,
 } from "@huella/shared-types";
 
 // Traduce el modelo de Prisma (camelCase) al contrato de la API
@@ -27,6 +28,14 @@ export function serializeUser(u: PrismaUser) {
     default_currency: u.defaultCurrency,
     created_at: u.createdAt.toISOString(),
     updated_at: u.updatedAt.toISOString(),
+  });
+}
+
+export function serializeAuthTokens(user: PrismaUser, accessToken: string, refreshToken: string) {
+  return authTokensSchema.parse({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+    user: serializeUser(user),
   });
 }
 

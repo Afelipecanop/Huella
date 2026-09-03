@@ -1,6 +1,8 @@
 import Fastify from "fastify";
 import prismaPlugin from "./plugins/prisma.js";
+import jwtPlugin from "./plugins/jwt.js";
 import healthRoute from "./routes/health.js";
+import authRoutes from "./routes/auth.js";
 import requireUserPlugin from "./plugins/require-user.js";
 import userRoutes from "./routes/users.js";
 import accountRoutes from "./routes/accounts.js";
@@ -15,10 +17,12 @@ export function buildServer() {
   });
 
   fastify.register(prismaPlugin);
+  fastify.register(jwtPlugin);
   fastify.register(healthRoute);
+  fastify.register(authRoutes, { prefix: "/auth" });
 
-  // Todo lo que cuelga de acá requiere el header x-user-id (placeholder de
-  // auth); /health queda afuera de este scope a propósito.
+  // Todo lo que cuelga de acá requiere un JWT de acceso válido (Authorization:
+  // Bearer); /health y /auth quedan afuera de este scope a propósito.
   fastify.register(async (api) => {
     await api.register(requireUserPlugin);
     await api.register(userRoutes, { prefix: "/users" });

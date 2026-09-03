@@ -23,7 +23,12 @@ beforeEach(async () => {
   senderAddress = `alerts-${suffix}@testbank.com`;
 
   const user = await prisma.user.create({
-    data: { email: `process-${suffix}@example.com`, name: "Test User", defaultCurrency: "COP" },
+    data: {
+      email: `process-${suffix}@example.com`,
+      passwordHash: "unused",
+      name: "Test User",
+      defaultCurrency: "COP",
+    },
   });
   userId = user.id;
 
