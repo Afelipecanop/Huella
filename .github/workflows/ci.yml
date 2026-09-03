@@ -69,5 +69,19 @@ jobs:
       - name: Build api
         run: pnpm --filter @huella/api build
 
-      - name: Test
-        run: pnpm -r run test
+      # Pasos separados y secuenciales a propósito, no `pnpm -r run test`:
+      # ese corre los scripts de cada paquete en paralelo por default, y
+      # apps/api + apps/email-worker comparten el mismo Postgres — la misma
+      # race de tests que fileParallelism: false ya resuelve *dentro* de
+      # cada paquete, pero entre paquetes distintos necesita esto.
+      - name: Test bank-templates
+        run: pnpm --filter @huella/bank-templates test
+
+      - name: Test api
+        run: pnpm --filter @huella/api test
+
+      - name: Test email-worker
+        run: pnpm --filter @huella/email-worker test
+
+      - name: Test mobile
+        run: pnpm --filter @huella/mobile test
