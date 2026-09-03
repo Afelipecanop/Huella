@@ -61,7 +61,7 @@ Si el parseo automático de un correo falla, el dato nunca se pierde: queda como
 | Captura automática por correo (`apps/email-worker`) | ✅ Listo — 19/19 tests pasando, mergeado a `master` |
 | Autenticación real (email + password) | ✅ Listo — argon2, JWT de acceso + refresh token rotable, reemplaza el placeholder `x-user-id` |
 | Tests automatizados en `apps/api` | ✅ Listo — 45/45 tests (auth, accounts, categories, transactions, ingestion-events, bank-templates, users) |
-| CI + documentación de arquitectura |  Pendiente |
+| CI + documentación de arquitectura | ✅ Listo — GitHub Actions en cada push/PR, [`docs/architecture.md`](docs/architecture.md) y [`docs/data-model.md`](docs/data-model.md) |
 
 ## 🏗️ Arquitectura
 
@@ -100,6 +100,8 @@ flowchart LR
 ```
 
 `apps/email-worker` no pasa por la API: escribe directo a la misma base de PostgreSQL vía Prisma + Cloudflare Hyperdrive, para evitar un salto de red extra en el camino de ingesta.
+
+Más detalle por componente en [`docs/architecture.md`](docs/architecture.md); el modelo de datos completo en [`docs/data-model.md`](docs/data-model.md).
 
 ##  Características
 
@@ -141,11 +143,15 @@ flowchart LR
   - **Nota técnica (compatibilidad con Cloudflare Workers).** Cloudflare Workers no puede ejecutar el motor de queries binario clásico de Prisma. Se resolvió agregando un segundo generador de Prisma en `packages/db` (export `@huella/db/workerd`, motor sin Rust vía `engineType = "client"`), sin tocar el export clásico (`@huella/db`) que sigue usando `apps/api` sin cambios. Además, una incompatibilidad separada y ya conocida de `@cloudflare/vitest-pool-workers` con módulos wasm cargados solo desde el grafo de imports de un test (no desde el entrypoint real del Worker) obligó a subir esa dependencia de test a su major más reciente (vitest 3→4).
   - **Nota técnica (manejo de errores).** El handler `email()` nunca deja que una excepción se escape: si `processEmail` falla (p. ej. una plantilla de banco con un regex mal formado), se captura y se persiste igual un `IngestionEvent` fallido — así una sola fila corrupta en `BankTemplate` no puede tumbar la ingesta de correos de nadie. Los escritos de `Transaction` + `IngestionEvent` en el caso exitoso van dentro de una transacción de Prisma (`$transaction`), y el monto/moneda extraídos se validan antes de escribir (rango de `Int` de Postgres, formato ISO de 3 letras) en vez de dejar que la escritura falle.
   - Implementación ejecutada con `superpowers:subagent-driven-development` en un worktree aislado, con una revisión final de rama que encontró y corrigió 7 problemas reales antes del merge (el más importante: `email()` no tenía manejo de errores, así que una sola plantilla de banco corrupta podía tumbar la ingesta de correos de todos los usuarios) y una condición de carrera real entre archivos de test que compartían la misma base de datos, detectada después del merge y corregida serializando la suite (`fileParallelism: false`).
+- **CI + docs de arquitectura (Fase 7, última del plan original).** GitHub Actions corre typecheck + build + test de todo el monorepo en cada push/PR a `master`, con un servicio Postgres para `apps/api` y `apps/email-worker` (`.github/workflows/ci.yml`). Se agregaron `docs/architecture.md` y `docs/data-model.md`. Armar el pipeline destapó que `apps/mobile`'s `entry.test.tsx` tenía un fixture desactualizado (le faltaba `bank_template_id`, agregado en la Fase 5) que rompía el typecheck — corregido para que el primer run de CI arranque en verde.
 - **Autenticación real + primera suite de tests de `apps/api`.** Se reemplazó el placeholder `x-user-id` por login real: `POST /auth/register|login|refresh|logout`, contraseñas hasheadas con argon2, JWT de acceso de 15 min (`@fastify/jwt`) y refresh tokens opacos persistidos en Postgres con rotación en cada uso (tabla `refresh_tokens`). `apps/mobile` suma pantallas de login/registro gateadas con `Stack.Protected`, sesión en `expo-secure-store` y refresh-y-reintento automático ante un 401. De paso se escribió la primera suite de tests de `apps/api` (45 tests: auth, accounts, categories, transactions, ingestion-events, bank-templates, users), que destapó dos bugs reales preexistentes — `categories.ts` y el PATCH de `transactions.ts` mandaban campos en snake_case (`parent_id`, `account_id`, `category_id`) directo a Prisma, que espera camelCase, tirando 500 en cualquier POST a `/categories` — corregidos junto con la suite. También se encontró que `vitest` corría cada test dos veces porque `dist/` matcheaba el mismo glob que el código fuente.
 
 ##  Modelo de datos (núcleo)
 
-- **Users** — id, email, name, default_currency
+> Detalle completo, con el porqué de cada decisión no obvia, en [`docs/data-model.md`](docs/data-model.md).
+
+- **Users** — id, email, password_hash, name, default_currency
+- **RefreshTokens** — un usuario puede tener varios vigentes (multi-dispositivo); se rotan en cada uso
 - **Accounts** — banco, efectivo o billetera; la cuenta "efectivo" es una fila más, sin caso especial
 - **Categories** — con subcategorías vía autorreferencia
 - **Transactions** — origen manual o por correo, estado pendiente o confirmado
@@ -178,8 +184,8 @@ huella/
 │   ├── shared-types/       # esquemas Zod, usados por los tres apps
 │   ├── bank-templates/      # motor de parseo + plantillas por banco
 │   └── db/                  # schema.prisma + migraciones, compartido entre api y email-worker
-├── docs/                    # specs y planes de cada fase
-└── .github/workflows/       # CI (pendiente)
+├── docs/                    # architecture.md, data-model.md, specs y planes de cada fase
+└── .github/workflows/       # CI (typecheck + build + test en cada push/PR)
 ```
 
 ##  Instalación rápida
@@ -256,7 +262,6 @@ Todavía no desplegado — desarrollo 100% local. La infraestructura pensada par
 
 ##  Próximos pasos
 
-- CI básico con GitHub Actions + `docs/architecture.md` y `docs/data-model.md` (Fase 7 — última fase del plan original)
 - Deploy real de `apps/email-worker` (recurso real de Cloudflare Hyperdrive, hoy con placeholder) y correr `wrangler deploy --dry-run` para validar el bundling real de wasm antes de desplegar — fuera de alcance de las 7 fases originales
 - Mecanismo de idempotencia para correos reenviados/reintentados (evitar `Transaction` duplicada si Cloudflare reintenta el handler)
 

@@ -14,6 +14,7 @@ const account = {
   name: "Efectivo",
   type: "cash" as const,
   currency: "ARS",
+  bank_template_id: null,
   created_at: "2026-08-20T00:00:00.000Z",
   updated_at: "2026-08-20T00:00:00.000Z",
 };

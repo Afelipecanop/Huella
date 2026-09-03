@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: huella
+          POSTGRES_PASSWORD: huella
+          POSTGRES_DB: huella
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U huella"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: "postgresql://huella:huella@localhost:5432/huella?schema=public"
+      JWT_SECRET: ci-test-secret-not-for-real-use
+      PORT: 3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # packages/db y packages/shared-types resuelven sus imports vía dist/
+      # (su package.json apunta main/types ahí, no hay paths a src) — nada
+      # tipa ni testea hasta que estén buildeados, y db además necesita
+      # `prisma generate` antes de su propio build.
+      - name: Build shared-types
+        run: pnpm --filter @huella/shared-types build
+
+      - name: Build bank-templates
+        run: pnpm --filter @huella/bank-templates build
+
+      - name: Prisma generate
+        run: pnpm --filter @huella/db exec prisma generate
+
+      - name: Build db
+        run: pnpm --filter @huella/db build
+
+      - name: Apply migrations
+        run: pnpm --filter @huella/db exec prisma migrate deploy
+
+      - name: Typecheck
+        run: pnpm -r run typecheck
+
+      - name: Build api
+        run: pnpm --filter @huella/api build
+
+      - name: Test
+        run: pnpm -r run test
