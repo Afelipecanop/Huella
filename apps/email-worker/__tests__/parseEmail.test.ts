@@ -8,6 +8,7 @@ describe("parseEmail", () => {
 
     expect(result.from).toBe("alertasynotificaciones@bancolombia.com.co");
     expect(result.text).toContain("Compra por $85.000,00 en ALMACENES EXITO");
+    expect(result.messageId).toBe("<bancolombia-compra-fixture@bancolombia.com.co>");
   });
 
   it("falls back to stripped HTML when there is no plain-text part", async () => {

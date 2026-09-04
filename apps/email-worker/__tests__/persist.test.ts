@@ -85,4 +85,67 @@ describe("persistIngestion", () => {
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({ parsedOk: true, templateId, transactionId: transactions[0].id });
   });
+
+  it("guarda el messageId en el IngestionEvent creado", async () => {
+    await persistIngestion(prisma, {
+      userId,
+      templateId: null,
+      rawContent: "correo no reconocido",
+      messageId: `<dup-check-${Date.now()}@testbank.com>`,
+      transaction: null,
+    });
+
+    const events = await prisma.ingestionEvent.findMany({ where: { userId } });
+    expect(events[0].messageId).toContain("dup-check");
+  });
+
+  it("una segunda llamada con el mismo messageId no crea un segundo IngestionEvent ni relanza", async () => {
+    const messageId = `<retry-${Date.now()}@testbank.com>`;
+
+    await persistIngestion(prisma, {
+      userId,
+      templateId: null,
+      rawContent: "correo no reconocido",
+      messageId,
+      transaction: null,
+    });
+
+    await expect(
+      persistIngestion(prisma, {
+        userId,
+        templateId: null,
+        rawContent: "correo no reconocido",
+        messageId,
+        transaction: null,
+      }),
+    ).resolves.toBeUndefined();
+
+    const events = await prisma.ingestionEvent.findMany({ where: { userId } });
+    expect(events).toHaveLength(1);
+  });
+
+  it("un reintento del outcome exitoso con el mismo messageId no deja una Transaction huérfana", async () => {
+    const messageId = `<retry-success-${Date.now()}@testbank.com>`;
+    const payload = {
+      userId,
+      templateId,
+      rawContent: "Compra por $10.000,00 en TIENDA",
+      messageId,
+      transaction: {
+        accountId,
+        amount: -1000000,
+        date: "2026-08-20T19:32:00.000Z",
+        currency: "COP",
+      },
+    };
+
+    await persistIngestion(prisma, payload);
+    await expect(persistIngestion(prisma, payload)).resolves.toBeUndefined();
+
+    const transactions = await prisma.transaction.findMany({ where: { userId } });
+    expect(transactions).toHaveLength(1);
+
+    const events = await prisma.ingestionEvent.findMany({ where: { userId } });
+    expect(events).toHaveLength(1);
+  });
 });

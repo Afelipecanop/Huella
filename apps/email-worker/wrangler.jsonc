@@ -1,16 +1,18 @@
 {
-  "name": "huella-email-worker",
-  "main": "src/index.ts",
-  "compatibility_date": "2026-08-20",
-  "compatibility_flags": ["nodejs_compat"],
-  "hyperdrive": [
-    {
-      "binding": "HYPERDRIVE",
-      // Placeholder: no real Cloudflare Hyperdrive resource exists yet
-      // (deployment is Fase 7, out of scope here). Local dev/tests never
-      // reach this id — vitest.config.ts's `hyperdrives` override points
-      // straight at the docker-compose Postgres instead.
-      "id": "placeholder-hyperdrive-id"
-    }
-  ]
+	"name": "huella-email-worker",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-08-20",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			// Recurso real de Cloudflare Hyperdrive ("huella-production"),
+			// apuntando al proxy público de Railway. Local dev/tests nunca
+			// llegan a este id — vitest.config.ts's `hyperdrives` override
+			// apunta directo al Postgres de docker-compose.
+			"id": "cb9393148f8844b49fb973dc815ca0ce"
+		}
+	]
 }

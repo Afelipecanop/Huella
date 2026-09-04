@@ -137,6 +137,13 @@ model IngestionEvent {
   userId        String   @map("user_id")
   templateId    String?  @map("template_id")
   transactionId String?  @unique @map("transaction_id")
+  // Header Message-ID (RFC 5322) del correo original. Nullable: un correo
+  // malformado sin ese header no debe romper el pipeline (Postgres permite
+  // múltiples NULL bajo UNIQUE). Es la clave de idempotencia real: un
+  // reintento de Cloudflare del mismo correo trae el mismo Message-ID, y
+  // esta constraint es lo que evita una Transaction/IngestionEvent
+  // duplicada, no una verificación a nivel de aplicación.
+  messageId     String?  @unique @map("message_id")
   rawContent    String   @map("raw_content") @db.Text
   parsedOk      Boolean  @map("parsed_ok")
   createdAt     DateTime @default(now()) @map("created_at")

@@ -3,6 +3,8 @@ import PostalMime from "postal-mime";
 export type ParsedEmail = {
   from: string;
   text: string;
+  // Header Message-ID (RFC 5322) — undefined si el correo no lo trae.
+  messageId?: string;
 };
 
 export async function parseEmail(raw: ReadableStream<Uint8Array>): Promise<ParsedEmail> {
@@ -14,6 +16,7 @@ export async function parseEmail(raw: ReadableStream<Uint8Array>): Promise<Parse
   return {
     from: parsed.from?.address ?? "",
     text,
+    messageId: parsed.messageId,
   };
 }
 

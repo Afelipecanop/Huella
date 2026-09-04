@@ -63,6 +63,8 @@ Servidor construido con una factory (`buildServer()` en `src/server.ts`), no una
 
 No pasa por la API: Cloudflare Email Routing dispara el worker por cada correo entrante, que resuelve el usuario por el destinatario (`<user_id>@ingest.huella.app`), parsea el MIME con `postal-mime`, usa `@huella/bank-templates` para extraer los campos, y escribe directo a Postgres vía Prisma + Cloudflare Hyperdrive — sin saltar por la API, para evitar un hop de red extra en el camino de ingesta. El handler `email()` nunca deja escapar una excepción: si el parseo falla, igual persiste un `IngestionEvent` sin parsear, así una plantilla de banco corrupta no puede tumbar la ingesta de nadie.
 
+**Idempotencia ante reintentos.** Si Cloudflare reintenta el handler (o entrega el mismo correo dos veces), `index.ts` extrae el header `Message-ID` y chequea temprano si ya existe un `IngestionEvent` con ese id — evita repetir el matching de plantilla y los lookups de cuenta en el caso común de un reintento secuencial. La garantía de corrección real es una constraint `UNIQUE` en `IngestionEvent.messageId` (Postgres): `persist.ts` captura el `P2002` que dispara si dos invocaciones concurrentes procesan el mismo correo a la vez, tratándolo como éxito silencioso. Deploy real: `apps/email-worker` corre en Cloudflare Workers, con un recurso Hyperdrive (`huella-production`) apuntando al Postgres de producción vía el proxy público de Railway (`postgres.railway.internal` no es alcanzable desde fuera de la red privada de Railway).
+
 ## Paquetes compartidos
 
 - **`packages/shared-types`** — esquemas Zod (snake_case, el contrato de la API) para las 7 entidades núcleo + los payloads de auth. Un archivo por entidad, re-exportado desde `index.ts`.

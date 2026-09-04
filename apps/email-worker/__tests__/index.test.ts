@@ -57,6 +57,27 @@ describe("email() end-to-end wiring", () => {
     expect(transactions[0]).toMatchObject({ amount: -8500000, status: "pending", source: "email" });
   });
 
+  it("idempotencia: un reintento de Cloudflare del mismo correo no duplica la Transaction", async () => {
+    const message = {
+      to: `${userId}@ingest.huella.app`,
+      raw: rawEmailToStream(bancolombiaCompraRawEmail),
+    } as unknown as ForwardableEmailMessage;
+
+    // Cloudflare reintenta reusando el mismo raw email — mismo Message-ID.
+    await worker.email(message, env, {} as ExecutionContext);
+    await worker.email(
+      { ...message, raw: rawEmailToStream(bancolombiaCompraRawEmail) } as unknown as ForwardableEmailMessage,
+      env,
+      {} as ExecutionContext,
+    );
+
+    const transactions = await prisma.transaction.findMany({ where: { userId } });
+    expect(transactions).toHaveLength(1);
+
+    const events = await prisma.ingestionEvent.findMany({ where: { userId } });
+    expect(events).toHaveLength(1);
+  });
+
   it("does nothing when the recipient doesn't resolve to a user", async () => {
     const message = {
       to: "not-a-real-user@ingest.huella.app",

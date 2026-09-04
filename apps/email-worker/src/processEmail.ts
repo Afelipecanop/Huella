@@ -25,7 +25,7 @@ function toCreateBankTemplate(row: BankTemplateRow): CreateBankTemplate {
 
 export async function processEmail(
   prisma: PrismaClient,
-  params: { userId: string; from: string; text: string },
+  params: { userId: string; from: string; text: string; messageId?: string },
 ): Promise<void> {
   const rows = await prisma.bankTemplate.findMany();
   const mapped = rows.map(toCreateBankTemplate);
@@ -36,6 +36,7 @@ export async function processEmail(
       userId: params.userId,
       templateId: null,
       rawContent: params.text,
+      messageId: params.messageId,
       transaction: null,
     });
     return;
@@ -49,6 +50,7 @@ export async function processEmail(
       userId: params.userId,
       templateId: templateRow.id,
       rawContent: params.text,
+      messageId: params.messageId,
       transaction: null,
     });
     return;
@@ -63,6 +65,7 @@ export async function processEmail(
       userId: params.userId,
       templateId: templateRow.id,
       rawContent: params.text,
+      messageId: params.messageId,
       transaction: null,
     });
     return;
@@ -79,6 +82,7 @@ export async function processEmail(
       userId: params.userId,
       templateId: templateRow.id,
       rawContent: params.text,
+      messageId: params.messageId,
       transaction: null,
     });
     return;
@@ -94,6 +98,7 @@ export async function processEmail(
     userId: params.userId,
     templateId: templateRow.id,
     rawContent: params.text,
+    messageId: params.messageId,
     transaction: {
       accountId: account.id,
       amount,

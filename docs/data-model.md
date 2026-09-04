@@ -41,9 +41,11 @@ Campos: `id`, `userId`, `accountId`, `categoryId` (nullable), `amount` (`Int`, u
 
 ## `IngestionEvent`
 
-Campos: `id`, `userId`, `templateId` (nullable), `transactionId` (nullable, único), `rawContent` (`Text`), `parsedOk`, `createdAt` — **sin `updatedAt`**.
+Campos: `id`, `userId`, `templateId` (nullable), `transactionId` (nullable, único), `messageId` (nullable, único), `rawContent` (`Text`), `parsedOk`, `createdAt` — **sin `updatedAt`**.
 
 Registro crudo e inmutable de cada correo recibido, se haya podido parsear o no — por eso no tiene `updatedAt`, nunca se edita. Es el mecanismo de "el dato nunca se pierde": si el parseo automático falla (plantilla no matchea, regex no extrae un campo), igual queda esta fila (`parsedOk: false`, `transactionId: null`) para revisar a mano, en vez de descartar el correo silenciosamente. `transactionId` es único porque, cuando el parseo sí tiene éxito, cada evento de ingesta produce como mucho una transacción.
+
+- **`messageId`, la clave de idempotencia.** Guarda el header `Message-ID` (RFC 5322) del correo original, que sobrevive intacto a un reintento de entrega de Cloudflare del mismo correo. Nullable porque un correo malformado sin ese header no debe romper el pipeline — Postgres permite múltiples `NULL` bajo `UNIQUE`, así que esos correos simplemente no participan en la dedup. La constraint `UNIQUE`, no una verificación a nivel de aplicación, es la garantía real: `apps/email-worker/src/persist.ts` captura el `P2002` (unique violation) que dispara ante un reintento y lo trata como éxito silencioso — así queda correcto también si dos entregas del mismo correo llegan en paralelo, no solo ante un reintento secuencial.
 
 ## `BankTemplate`
 
