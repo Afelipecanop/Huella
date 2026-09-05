@@ -267,7 +267,12 @@ pnpm --filter <paquete> run typecheck
 
 ##  Próximos pasos
 
-Todo el backlog de código de las 7 fases originales está cerrado. Lo único pendiente no es código: configurar Email Routing en el dashboard de Cloudflare (agregar el dominio, los MX records, y una regla que rutee `*@ingest.huella.app` al worker) — sin esto, `apps/email-worker` está deployado pero no le llega ningún correo real todavía.
+Todo el backlog de código de las 7 fases originales está cerrado. Lo único pendiente no es código: terminar de configurar Email Routing en Cloudflare para que `apps/email-worker` (ya deployado) empiece a recibir correos reales.
+
+**En progreso:**
+1. ⏳ Agregar `huella.app` como sitio en Cloudflare + apuntar los nameservers ahí desde el registrador del dominio (todavía no es una zona en la cuenta de Cloudflare).
+2. ⏳ Una vez la zona esté `Active`, agregar el subdominio `ingest` en Email Routing → Settings → Subdomains (dashboard, no tiene comando de wrangler).
+3. Pendiente, se hace por CLI apenas 1-2 estén listos: `wrangler email routing enable huella.app` + una regla catch-all en `ingest.huella.app` que rutee a `huella-email-worker` (`wrangler email routing rules update ingest.huella.app catch-all --action-type worker ...`).
 
 ---
 
